@@ -144,31 +144,6 @@ const update = async (req, res) => {
       },
     });
 
-    await prisma.post.updateMany({
-      where: {
-        userId: req.user.id,
-      },
-      data: {
-        userPhoto: data.photo,
-      },
-    });
-
-    if (data.photo !== req.user.photo) {
-      await prisma.post.create({
-        data: {
-          photo: data.photo,
-          status: "Новое фото профиля",
-          likesCount: "0",
-          commentsCount: "0",
-          description: "",
-          name: req.user.name,
-          nickname: req.user.nickName || "",
-          userId: req.user.id,
-          userPhoto: req.user.photo,
-        },
-      });
-    }
-
     if (!user) {
       return res
         .status(404)
@@ -176,6 +151,55 @@ const update = async (req, res) => {
     }
 
     return res.status(200).json(user);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Что-то пошло не так" });
+  }
+};
+
+const uploadAvatar = async (req, res) => {
+  try {
+    const { path } = req.file;
+
+    if (!path) {
+      res.status(400).json({ message: "Не удалось получить изображение" });
+    }
+
+    const user = await prisma.user.update({
+      where: {
+        id: req.user.id,
+      },
+      data: {
+        ...req.user,
+        photo: path,
+      },
+    });
+
+    await prisma.post.updateMany({
+      where: {
+        userId: req.user.id,
+      },
+      data: {
+        userPhoto: path,
+      },
+    });
+
+    if (path !== req.user.photo) {
+      await prisma.post.create({
+        data: {
+          photo: path,
+          status: "Новое фото профиля",
+          likesCount: "0",
+          commentsCount: "0",
+          name: req.user.name,
+          nickname: req.user.nickName || "",
+          userId: req.user.id,
+          userPhoto: path,
+        },
+      });
+    }
+
+    res.status(200).json(user);
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "Что-то пошло не так" });
@@ -190,9 +214,9 @@ const follow = async (req, res) => {
       return res.status(400).json({ message: "Не удалось получить запись" });
     }
 
-    const alreadyFollow = await prisma.follower.findUnique({
+    const alreadyFollow = await prisma.follower.findFirst({
       where: {
-        id: req.user.id,
+        followerId: req.user.id,
         userId: id,
       },
     });
@@ -205,14 +229,14 @@ const follow = async (req, res) => {
 
     const newFolowed = await prisma.followed.create({
       data: {
-        id,
+        followedId: id,
         userId: req.user.id,
       },
     });
 
     const newFolower = await prisma.follower.create({
       data: {
-        id: req.user.id,
+        followerId: req.user.id,
         userId: id,
       },
     });
@@ -221,7 +245,13 @@ const follow = async (req, res) => {
       return res.status(500).json({ message: "Не удалось подписаться" });
     }
 
-    res.status(201).json({ message: "Подписка оформлена" });
+    const followers = await prisma.follower.findMany({
+      where: {
+        userId: id,
+      },
+    });
+
+    res.status(201).json(followers);
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "Что-то пошло не так" });
@@ -236,15 +266,17 @@ const unsub = async (req, res) => {
       return res.status(400).json({ message: "Не удалось получить запись" });
     }
 
-    const followed = await prisma.followed.delete({
+    const followed = await prisma.followed.deleteMany({
       where: {
-        id,
+        followedId: id,
+        userId: req.user.id,
       },
     });
 
-    const followes = await prisma.follower.delete({
+    const followes = await prisma.follower.deleteMany({
       where: {
-        id: req.user.id,
+        followerId: req.user.id,
+        userId: id,
       },
     });
 
@@ -252,7 +284,13 @@ const unsub = async (req, res) => {
       return res.status(500).json({ message: "Не удалось отписаться" });
     }
 
-    res.status(201).json({ message: "Отписка произошла успешно" });
+    const followers = await prisma.follower.findMany({
+      where: {
+        userId: id,
+      },
+    });
+
+    res.status(201).json(followers);
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "Что-то пошло не так" });
@@ -272,7 +310,7 @@ const getFollowers = async (req, res) => {
     const ids = [];
 
     followers.forEach((el) => {
-      ids.push(el.id);
+      ids.push(el.followerId);
     });
 
     const users = await prisma.user.findMany({
@@ -308,7 +346,7 @@ const getFollows = async (req, res) => {
     const ids = [];
 
     follows.forEach((el) => {
-      ids.push(el.id);
+      ids.push(el.followedId);
     });
 
     const users = await prisma.user.findMany({
@@ -337,7 +375,7 @@ const isFollowed = async (req, res) => {
 
     const followed = await prisma.follower.findFirst({
       where: {
-        id: req.user.id,
+        followerId: req.user.id,
         userId: id,
       },
     });
@@ -348,82 +386,16 @@ const isFollowed = async (req, res) => {
   }
 };
 
-const likes = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const likedPostsIDs = await prisma.liked.findMany({
-      where: {
-        userId: id,
-      },
-    });
-
-    const ids = [];
-
-    likedPostsIDs.forEach((el) => {
-      ids.push(el.postId);
-    });
-
-    const post = await prisma.post.findMany({
-      where: {
-        id: {
-          in: ids,
-        },
-      },
-    });
-
-    res.status(200).json(post);
-  } catch (error) {
-    console.log(error);
-    return res.status(500).json({ message: "Что-то пошло не так" });
-  }
-};
-
-const saves = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    if (!id) {
-      return res.status(400).json({ message: "Не удалось получить запись" });
-    }
-
-    const userSaves = await prisma.saved.findMany({
-      where: {
-        userId: req.user.id,
-      },
-    });
-
-    const ids = [];
-
-    userSaves.forEach((el) => {
-      ids.push(el.postId);
-    });
-
-    const posts = await prisma.post.findMany({
-      where: {
-        id: {
-          in: ids,
-        },
-      },
-    });
-
-    res.status(200).json(posts);
-  } catch (error) {
-    return res.status(500).json({ message: "Что-то пошло не так" });
-  }
-};
-
 module.exports = {
   register,
   login,
   current,
   update,
+  uploadAvatar,
   get,
   follow,
   isFollowed,
   getFollowers,
   getFollows,
   unsub,
-  likes,
-  saves,
 };

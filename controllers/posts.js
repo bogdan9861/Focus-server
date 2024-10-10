@@ -1,19 +1,19 @@
 const { prisma } = require("../prisma/prisma.client");
+const fs = require("fs");
 
 const post = async (req, res) => {
   try {
-    const { photo, description } = req.body;
-
-    if (!photo) {
-      return res.status(400).json({ message: "Все поля обязательны" });
+    if (!req.file.path) {
+      return res
+        .status(400)
+        .json({ message: "Не удалось получить изображение" });
     }
 
     const post = await prisma.post.create({
       data: {
-        photo,
+        photo: req.file.path,
         likesCount: "0",
         commentsCount: "0",
-        description: description || "",
         status: "Новая публикация",
 
         userId: req.user.id,
@@ -54,7 +54,7 @@ const remove = async (req, res) => {
       return res.status(500).json({ message: "Не удалось удалить запись" });
     }
 
-    res.status(200).json({ message: "Запись успешно удалена" });
+    res.status(200).json(post);
   } catch (error) {
     return res.status(500).json({ message: "Что-то пошло не так" });
   }
@@ -84,7 +84,7 @@ const getPostByID = async (req, res) => {
 
 const getUsersPost = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { id } = req.body;
 
     const posts = await prisma.post.findMany({
       where: {
@@ -92,7 +92,7 @@ const getUsersPost = async (req, res) => {
       },
     });
 
-    res.status(200).json(posts);
+    res.status(200).json(posts.reverse());
   } catch (error) {
     return res.status(500).json({ message: "Что-то пошло не так" });
   }
@@ -150,6 +150,54 @@ const like = async (req, res) => {
   }
 };
 
+const isLiked = async (req, res) => {
+  try {
+    const { id } = req.body;
+
+    const likes = await prisma.liked.findFirst({
+      where: {
+        postId: id,
+        userId: req.user.id,
+      },
+    });
+
+    res.status(200).json({ isLiked: !!likes });
+  } catch (error) {
+    return res.status(500).json({ message: "Что-то пошло не так" });
+  }
+};
+
+const likes = async (req, res) => {
+  try {
+    const { id } = req.body;
+
+    const likedPostsIDs = await prisma.liked.findMany({
+      where: {
+        userId: id,
+      },
+    });
+
+    const ids = [];
+
+    likedPostsIDs.forEach((el) => {
+      ids.push(el.postId);
+    });
+
+    const post = await prisma.post.findMany({
+      where: {
+        id: {
+          in: ids,
+        },
+      },
+    });
+
+    res.status(200).json(post);
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ message: "Что-то пошло не так" });
+  }
+};
+
 const unlike = async (req, res) => {
   try {
     const { id } = req.body;
@@ -192,19 +240,97 @@ const unlike = async (req, res) => {
   }
 };
 
-const isLiked = async (req, res) => {
+const save = async (req, res) => {
   try {
     const { id } = req.body;
 
-    const likes = await prisma.liked.findFirst({
+    if (!id) {
+      return res.status(400).json({ message: "Не удалось получить запись" });
+    }
+
+    const saved = await prisma.saved.create({
+      data: {
+        postId: id,
+        userId: req.user.id,
+      },
+    });
+
+    res.status(201).json({ message: "Запись успешно сохранена" });
+  } catch (error) {
+    return res.status(500).json({ message: "Что-то пошло не так" });
+  }
+};
+
+const saves = async (req, res) => {
+  try {
+    const { id } = req.body;
+
+    if (!id) {
+      return res.status(400).json({ message: "Не удалось получить запись" });
+    }
+
+    const userSaves = await prisma.saved.findMany({
+      where: {
+        userId: req.user.id,
+      },
+    });
+
+    const ids = [];
+
+    userSaves.forEach((el) => {
+      ids.push(el.postId);
+    });
+
+    const posts = await prisma.post.findMany({
+      where: {
+        id: {
+          in: ids,
+        },
+      },
+    });
+
+    res.status(200).json(posts.reverse());
+  } catch (error) {
+    return res.status(500).json({ message: "Что-то пошло не так" });
+  }
+};
+
+const isSaved = async (req, res) => {
+  try {
+    const { id } = req.body;
+
+    const post = await prisma.saved.findFirst({
+      where: {
+        postId: id,
+      },
+    });
+
+    res.status(200).json({ isSaved: !!post });
+  } catch (error) {
+    return res.status(500).json({ message: "Что-то пошло не так" });
+  }
+};
+
+const unsave = async (req, res) => {
+  try {
+    const { id } = req.body;
+
+    console.log(id);
+
+    if (!id) {
+      return res.status(400).json({ message: "Не удалось получить запись" });
+    }
+
+    const saved = await prisma.saved.deleteMany({
       where: {
         postId: id,
         userId: req.user.id,
       },
     });
 
-    res.status(200).json({ isLiked: !!likes });
+    res.status(201).json(saved);
   } catch (error) {
+    console.log(error);
     return res.status(500).json({ message: "Что-то пошло не так" });
   }
 };
@@ -286,45 +412,31 @@ const getComments = async (req, res) => {
   }
 };
 
-const save = async (req, res) => {
+const getRecomendations = async (req, res) => {
   try {
-    const { id } = req.body;
-
-    if (!id) {
-      return res.status(400).json({ message: "Не удалось получить запись" });
-    }
-
-    const saved = await prisma.saved.create({
-      data: {
-        postId: id,
-        userId: req.user.id,
-      },
-    });
-
-    res.status(201).json({ message: "Запись успешно сохранена" });
-  } catch (error) {
-    return res.status(500).json({ message: "Что-то пошло не так" });
-  }
-};
-
-const unsave = async (req, res) => {
-  try {
-    const { id } = req.body;
-
-    if (!id) {
-      return res.status(400).json({ message: "Не удалось получить запись" });
-    }
-
-    const saved = await prisma.saved.delete({
+    const followed = await prisma.followed.findMany({
       where: {
-        postId: id,
         userId: req.user.id,
       },
     });
 
-    res.status(201).json({ message: "Запись удалена из сохранений" });
+    const ids = [];
+
+    followed.forEach((el) => {
+      ids.push(el.id);
+    });
+
+    const posts = await prisma.post.findMany({
+      where: {
+        id: {
+          in: ids,
+        },
+      },
+    });
+
+    res.status(200).json(posts);
   } catch (error) {
-    return res.status(500).json({ message: "Что-то пошло не так" });
+    res.status(500).json({ message: "Что-то пошло не так" });
   }
 };
 
@@ -335,10 +447,14 @@ module.exports = {
   getAllPosts,
   getPostByID,
   like,
+  likes,
   unlike,
   isLiked,
+  save,
+  saves,
+  unsave,
+  isSaved,
   comment,
   getComments,
-  save,
-  unsave,
+  getRecomendations,
 };

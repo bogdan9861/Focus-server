@@ -5,22 +5,28 @@ const {
   register,
   current,
   update,
+  uploadAvatar,
   get,
   follow,
   isFollowed,
   getFollowers,
   getFollows,
   unsub,
-  likes,
-  saves,
 } = require("../controllers/users");
 const { auth } = require("../middleware/auth");
+const fileMiddleware = require("../middleware/file");
 
 router.post("/login", login);
 router.post("/register", register);
 router.post("/follow", auth, follow);
 
 router.put("/update", auth, update);
+router.put(
+  "/uploadAvatar",
+  auth,
+  fileMiddleware.single("avatar"),
+  uploadAvatar
+);
 
 router.delete("/unsub", auth, unsub);
 
@@ -28,8 +34,6 @@ router.get("/get/:id", auth, get);
 router.get("/current", auth, current);
 router.get("/followers/:id", auth, getFollowers);
 router.get("/follows/:id", auth, getFollows);
-router.get("/likes/:id", auth, likes);
-router.get("/saves/:id", auth, saves);
 router.get("/isFollowed/:id", auth, isFollowed);
 
 module.exports = router;
