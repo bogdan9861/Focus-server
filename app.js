@@ -20,4 +20,6 @@ app.use("/api/users", require("./routes/users"));
 app.use("/api/posts", require("./routes/posts"));
 app.use("/api/files", require("./routes/files"));
 
+app.use("/api/chats", require("./routes/chats"));
+
 module.exports = app;
