@@ -13,7 +13,9 @@ const getMessagesHistory = (path) => {
   const obj = arr.map((el) => {
     return {
       message: el.split("|id|").shift(),
-      userId: el.split("|id|").pop(),
+      userId: el.split("|id|").pop().split("|time|")[0],
+      time: el.split("|time|").pop().split("|audio|").shift(),
+      audio: el.includes("|audio|") ? el.split("|audio|").pop() : null,
     };
   });
 

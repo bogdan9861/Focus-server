@@ -10,6 +10,7 @@ const app = express();
 
 app.use(cors({ origin: "*" }));
 app.use("/images", express.static(path.join(__dirname, "images")));
+app.use("/audio", express.static(path.join(__dirname, "audio")));
 
 app.use(logger("dev"));
 app.use(express.json());

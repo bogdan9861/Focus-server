@@ -34,8 +34,6 @@ const post = async (req, res) => {
   }
 };
 
-//
-
 const remove = async (req, res) => {
   try {
     const { id } = req.params;
