@@ -50,6 +50,10 @@ const remove = async (req, res) => {
       },
     });
 
+    fs.rm(post.photo, (file) => {
+      console.log("removed", file);
+    });
+
     if (!post) {
       return res.status(500).json({ message: "Не удалось удалить запись" });
     }
