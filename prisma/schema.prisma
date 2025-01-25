@@ -1,0 +1,115 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id       String @id @default(uuid())
+  about    String
+  name     String
+  nickname String
+  phone    String
+  photo    String
+  password String
+  status   String
+
+  posts     Post[]
+  followers Follower[]
+  follows   Followed[]
+  saves     Saved[]
+  likes     Liked[]
+
+  Chat   Chat?   @relation(fields: [chatId], references: [id])
+  chatId String?
+}
+
+model Post {
+  id            String  @id @default(uuid())
+  User          User?   @relation(fields: [userId], references: [id])
+  userId        String?
+  photo         String
+  userPhoto     String?
+  nickname      String?
+  name          String?
+  likesCount    String
+  commentsCount String
+  status        String?
+
+  comments Comment[]
+}
+
+model Comment {
+  id       String  @id @default(uuid())
+  Post     Post?   @relation(fields: [postId], references: [id])
+  postId   String?
+  name     String?
+  nickname String?
+  text     String
+  Saved    Saved?  @relation(fields: [savedId], references: [id])
+  savedId  String?
+  Liked    Liked?  @relation(fields: [likedId], references: [id])
+  likedId  String?
+}
+
+model Follower {
+  id         String  @id @default(uuid())
+  followerId String?
+  User       User?   @relation(fields: [userId], references: [id])
+  userId     String?
+}
+
+model Followed {
+  id         String  @id @default(uuid())
+  followedId String?
+  User       User?   @relation(fields: [userId], references: [id])
+  userId     String?
+}
+
+model Saved {
+  id     String  @id @default(uuid())
+  User   User?   @relation(fields: [userId], references: [id])
+  userId String?
+  postId String?
+
+  Comment Comment[]
+}
+
+model Liked {
+  id      String    @id @default(uuid())
+  User    User?     @relation(fields: [userId], references: [id])
+  userId  String?
+  Comment Comment[]
+  postId  String?
+}
+
+model Chat {
+  id       String  @id @default(uuid())
+  userID_1 String?
+  userID_2 String?
+
+  user_1_name  String?
+  user_1_photo String?
+
+  user_2_name  String?
+  user_2_photo String?
+
+  audioMessages AudioMessage[]
+
+  User User[]
+}
+
+model AudioMessage {
+  id     String  @id @default(uuid())
+  Chat   Chat?   @relation(fields: [chatId], references: [id])
+  chatId String?
+
+  uri    String
+  userId String
+}
