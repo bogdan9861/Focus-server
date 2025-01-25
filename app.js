@@ -8,7 +8,7 @@ require("dotenv").config();
 
 const app = express();
 
-app.use(cors({ origin: "*" }));
+app.use(cors({ origin: "https://guileless-clafoutis-9d01ff.netlify.app" }));
 app.use("/images", express.static(path.join(__dirname, "images")));
 app.use("/audio", express.static(path.join(__dirname, "audio")));
 
