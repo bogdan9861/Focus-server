@@ -91,6 +91,8 @@ const login = async (req, res) => {
         .json({ message: "Номер телефона или пароль не совпадают" });
     }
   } catch (error) {
+    console.log(error);
+
     res.status(500).json({ message: "Что-то пошло не так" });
   }
 };
