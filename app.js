@@ -8,9 +8,40 @@ require("dotenv").config();
 
 const app = express();
 
-app.use(cors({ origin: "https://guileless-clafoutis-9d01ff.netlify.app" }));
+// const nodemailer = require("nodemailer");
+// const directTransport = require("nodemailer-direct-transport");
+// const fromHost = `mail.my`;
+// const from = "Focus" + "@" + fromHost; //придумываете свою почту(может быть несуществующая)
+// const to = 'besedin_b@bk.ru';
+// const transport = nodemailer.createTransport(
+//   directTransport({
+//     name: fromHost,
+//   })
+// );
+// transport.sendMail(
+//   {
+//     from,
+//     to,
+//     subject: "Ваш код подтверждения",
+//     html: `
+//          <p>31233</p>
+//         `,
+//   },
+//   (err, data) => {
+//     console.log(data);
+
+//     if (err) {
+//       console.error("Ошибка при отправке:", err);
+//     } else {
+//       console.log("Письмо отправлено");
+//     }
+//   }
+// );
+
+app.use(cors({ origin: "*" }));
 app.use("/images", express.static(path.join(__dirname, "images")));
 app.use("/audio", express.static(path.join(__dirname, "audio")));
+app.use("/videos", express.static(path.join(__dirname, "videos")));
 
 app.use(logger("dev"));
 app.use(express.json());
