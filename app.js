@@ -42,6 +42,7 @@ app.use(cors({ origin: "*" }));
 app.use("/images", express.static(path.join(__dirname, "images")));
 app.use("/audio", express.static(path.join(__dirname, "audio")));
 app.use("/videos", express.static(path.join(__dirname, "videos")));
+app.use("/files", express.static(path.join(__dirname, "files")));
 
 app.use(logger("dev"));
 app.use(express.json());

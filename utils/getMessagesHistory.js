@@ -14,8 +14,15 @@ const getMessagesHistory = (path) => {
     return {
       message: el.split("|id|").shift(),
       userId: el.split("|id|").pop().split("|time|")[0],
-      time: el.split("|time|").pop().split("|audio|").shift(),
+      time: el
+        .split("|time|")
+        .pop()
+        .split("|audio|")
+        .shift()
+        .split("|file|")
+        .shift(),
       audio: el.includes("|audio|") ? el.split("|audio|").pop() : null,
+      file: el.includes("|file|") ? el.split("|file|").pop() : null,
     };
   });
 

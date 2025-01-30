@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const { auth } = require("../middleware/auth");
 const audio = require("../middleware/audio");
+const allFiles = require("../middleware/allFiles");
 const {
   create,
   send,
@@ -11,10 +12,11 @@ const {
   removeById,
   getChatByRecipientId,
   sendVoice,
+  sendFile,
 } = require("../controllers/chats");
 
 router.post("/upload/voice", auth, audio.single("audio"), sendVoice);
-router.post("/upload/file", auth, audio.single("audio"), sendVoice);
+router.post("/upload/file", auth, allFiles.single("file"), sendFile);
 
 router.post("/create", auth, create);
 router.post("/history", auth, getMessagesByChatId);

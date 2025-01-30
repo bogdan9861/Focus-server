@@ -62,7 +62,7 @@ const send = async (req, res) => {
     const time = getCurrentTime();
 
     if (!text || !chatId) {
-      res.status(400).json({ message: "Все поля обязательны" });
+      return res.status(400).json({ message: "Все поля обязательны" });
     }
 
     const safetyString = text.replace("|id|", "");
@@ -83,14 +83,14 @@ const send = async (req, res) => {
     }
 
     if (history) {
-      res.status(200).json(history);
+      return res.status(200).json(history);
     } else {
-      res.status(200).json([{}]);
+      return res.status(200).json([{}]);
     }
   } catch (error) {
     console.log(error);
 
-    res.status(500).json({ message: error });
+    return res.status(500).json({ message: error });
   }
 };
 
@@ -233,6 +233,45 @@ const sendVoice = async (req, res) => {
   }
 };
 
+const sendFile = async (req, res) => {
+  try {
+    const { chatId } = req.body;
+
+    if (!chatId) {
+      return res.status(400).json({ message: "Все поля обязательны" });
+    }
+
+    const { file } = req;
+
+    const time = getCurrentTime();
+
+    if (file) {
+      const path = `./messages/${chatId}.txt`;
+      const message = `|id|${req.user.id}|time|${time}|file|${file.path};`;
+
+      console.log(file.type);
+
+      if (fs.existsSync(path)) {
+        fs.appendFileSync(path, message, (err) => {
+          console.log(err);
+        });
+      } else {
+        fs.writeFile(path, message, (err) => {
+          console.log(err);
+        });
+      }
+
+      res.status(200).json(file);
+    } else {
+      res.status(400).json({ message: "Не удалось получить файл" });
+    }
+  } catch (error) {
+    console.log(error);
+
+    res.status(500).json({ message: "Что-то пошло не так" });
+  }
+};
+
 module.exports = {
   create,
   send,
@@ -242,4 +281,5 @@ module.exports = {
   removeById,
   getChatByRecipientId,
   sendVoice,
+  sendFile,
 };
