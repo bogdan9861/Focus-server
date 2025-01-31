@@ -373,7 +373,7 @@ const getFollows = async (req, res) => {
 
 const isFollowed = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { id } = req.body;  
 
     const followed = await prisma.follower.findFirst({
       where: {
