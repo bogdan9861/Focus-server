@@ -12,6 +12,7 @@ const {
   getFollowers,
   getFollows,
   unsub,
+  getAll,
 } = require("../controllers/users");
 const { auth } = require("../middleware/auth");
 const fileMiddleware = require("../middleware/file");
@@ -31,6 +32,7 @@ router.put(
 
 router.delete("/unsub", auth, unsub);
 
+router.get("/get", auth, getAll);
 router.get("/get/:id", auth, get);
 router.get("/current", auth, current);
 router.get("/followers/:id", auth, getFollowers);

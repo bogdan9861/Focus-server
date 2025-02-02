@@ -373,7 +373,7 @@ const getFollows = async (req, res) => {
 
 const isFollowed = async (req, res) => {
   try {
-    const { id } = req.body;  
+    const { id } = req.body;
 
     const followed = await prisma.follower.findFirst({
       where: {
@@ -384,6 +384,22 @@ const isFollowed = async (req, res) => {
 
     res.status(200).json({ followed: !!followed });
   } catch (error) {
+    res.status(500).json({ message: "Что-то пошло не так" });
+  }
+};
+
+const getAll = async (req, res) => {
+  try {
+    const users = await prisma.user.findMany();
+
+    if (users) {
+      res.status(200).json(users);
+    } else {
+      res.status(400).json({ message: "Не удалось найти пользователей" });
+    }
+  } catch (error) {
+    console.log(error);
+
     res.status(500).json({ message: "Что-то пошло не так" });
   }
 };
@@ -400,4 +416,5 @@ module.exports = {
   getFollowers,
   getFollows,
   unsub,
+  getAll,
 };
