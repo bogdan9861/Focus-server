@@ -5,53 +5,68 @@ const getCurrentTime = require("../utils/getCurrentTime");
 
 const create = async (req, res) => {
   try {
-    const { recipientId } = req.body;
+    const { userIds, name } = req.body;
 
-    if (!recipientId)
-      return res
-        .status(400)
-        .json({ message: "Не уадлось получить id получателя" });
+    if (!userIds)
+      return res.status(400).json({ message: "Все поля обязательны" });
 
-    const recipient = await prisma.user.findFirst({
-      where: {
-        id: recipientId,
-      },
-    });
-
-    const isExist = await prisma.chat.findFirst({
-      where: {
-        AND: [
-          { userID_1: req.user.id || recipientId },
-          { userID_2: recipientId || req.user.id },
-        ],
-      },
-    });
-
-    if (!isExist) {
-      const chat = await prisma.chat.create({
-        data: {
-          userID_1: req.user.id,
-          userID_2: recipientId,
-
-          user_1_name: req.user.name,
-          user_1_photo: req.user.photo,
-
-          user_2_name: recipient.name,
-          user_2_photo: recipient.photo,
+    const chat = await prisma.chat.create({
+      data: {
+        users: {
+          create: userIds.map((userId) => ({
+            user: {
+              connect: { id: userId },
+            },
+          })),
         },
-      });
+        name: name || "",
+        photo: req?.file?.path || "",
+      },
+      include: {
+        users: {
+          include: {
+            user: true,
+          },
+        },
+      },
+    });
 
-      if (chat) {
-        res.status(201).json(chat);
-      } else {
-        res.status(400).json({ message: "Не удалось создать чат" });
-      }
+    if (chat) {
+      res.status(201).json(chat);
     } else {
-      return res.status(200).json(isExist);
+      res.status(400).json({ message: "Не удалось создать чат" });
     }
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "Что-то пошло не так" });
+  }
+};
+
+const update = async (req, res) => {
+  try {
+    const { chatId, name } = req.body;
+
+    if (!name || !chatId) {
+      res.status(400).json({ message: "Все поля обязательны" });
+    }
+
+    const chat = await prisma.chat.update({
+      where: {
+        id: chatId,
+      },
+      data: {
+        photo: req.file.path || prisma.chat.fields.photo,
+        name: name || prisma.chat.fields.name,
+      },
+    });
+
+    if (chat) {
+      res.status(200).json(chat);
+    } else {
+      res.status(400).json({ message: "Не удалось получить чат" });
+    }
+  } catch (error) {
+    return res.status(500).json({ message: error });
   }
 };
 
@@ -75,6 +90,15 @@ const send = async (req, res) => {
     if (fs.existsSync(path)) {
       fs.appendFileSync(path, message, (err) => {
         console.log(err);
+      });
+
+      await prisma.chat.update({
+        where: {
+          id: chatId,
+        },
+        data: {
+          lastMessage: text,
+        },
       });
     } else {
       fs.writeFile(path, message, (err) => {
@@ -118,12 +142,25 @@ const get = async (req, res) => {
   try {
     const chats = await prisma.chat.findMany({
       where: {
-        OR: [{ userID_1: req.user.id }, { userID_2: req.user.id }],
+        users: {
+          some: {
+            userId: req.user.id,
+          },
+        },
+      },
+      include: {
+        users: {
+          include: {
+            user: true,
+          },
+        },
       },
     });
 
     if (chats) {
       res.status(200).json(chats);
+    } else {
+      res.status(200).json([]);
     }
   } catch (error) {
     console.log(error);
@@ -140,6 +177,13 @@ const getById = async (req, res) => {
 
     const chat = await prisma.chat.findFirst({
       where: { id },
+      include: {
+        users: {
+          include: {
+            user: true,
+          },
+        },
+      },
     });
 
     res.status(200).json(chat);
@@ -172,27 +216,25 @@ const removeById = async (req, res) => {
 
 const getChatByRecipientId = async (req, res) => {
   try {
-    const { id } = req.params;
+    // const { id } = req.params;
 
-    const chat = await prisma.chat.findFirst({
-      where: {
-        AND: [{ userID_1: req.user.id || id }, { userID_2: id || req.user.id }],
-      },
-    });
+    // const chat = await prisma.c.findFirst({
+    //   where: {
+       
+    //   },
+    // });
 
-    if (chat) {
-      console.log(chat);
+    // if (chat) {
+    //   const history = getMessagesHistory(`./messages/${chat.id}.txt`);
 
-      const history = getMessagesHistory(`./messages/${chat.id}.txt`);
-
-      if (history) {
-        res.status(200).json(history);
-      } else {
-        res.status(200).json([]);
-      }
-    } else {
-      res.status(500).json({ message: "Не удалось получить историю чата" });
-    }
+    //   if (history) {
+    //     res.status(200).json(history);
+    //   } else {
+    //     res.status(200).json([]);
+    //   }
+    // } else {
+    //   res.status(500).json({ message: "Не удалось получить историю чата" });
+    // }
   } catch (error) {
     res.status(500).json({ message: "Что-то пошло не так" });
   }
@@ -282,4 +324,5 @@ module.exports = {
   getChatByRecipientId,
   sendVoice,
   sendFile,
+  update,
 };
