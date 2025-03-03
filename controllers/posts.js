@@ -444,6 +444,24 @@ const getRecomendations = async (req, res) => {
   }
 };
 
+const getVideoPosts = async (req, res) => {
+  try {
+    const posts = await prisma.post.findMany({
+      where: {
+        photo: { endsWith: ".mp4" },
+      },
+    });
+
+    if (post) {
+      return res.status(200).json(posts);
+    } else {
+      return res.status(404).json({ posts: [] });
+    }
+  } catch (error) {
+    res.status(500).json({ message: "Что-то пошло не так" });
+  }
+};
+
 module.exports = {
   post,
   remove,
@@ -461,4 +479,5 @@ module.exports = {
   comment,
   getComments,
   getRecomendations,
+  getVideoPosts,
 };

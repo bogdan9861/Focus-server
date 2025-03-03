@@ -19,6 +19,7 @@ const {
   saves,
   isSaved,
   getRecomendations,
+  getVideoPosts,
 } = require("../controllers/posts");
 const fileMiddleware = require("../middleware/file");
 
@@ -41,5 +42,6 @@ router.delete("/remove/:id", auth, remove);
 
 router.get("/getAllPosts", getAllPosts);
 router.get("/recomendations", auth, getRecomendations);
+router.get("/getVideoPosts", auth, getVideoPosts);
 
 module.exports = router;
