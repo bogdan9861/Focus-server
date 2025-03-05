@@ -1,1 +1,1 @@
-Привет|id|f195d135-bbb9-4e5f-bb6e-5d2972b4a410|time|22:07;ку|id|64c72e58-476d-41dd-9dbe-9a4c3fb463df|time|17:57;re|id|64c72e58-476d-41dd-9dbe-9a4c3fb463df|time|18:00;ку|id|64c72e58-476d-41dd-9dbe-9a4c3fb463df|time|18:02;123|id|64c72e58-476d-41dd-9dbe-9a4c3fb463df|time|18:02;ку|id|64c72e58-476d-41dd-9dbe-9a4c3fb463df|time|18:02;
+|id|64c72e58-476d-41dd-9dbe-9a4c3fb463df|time|15:05|file|files\1741176317388-ÐÑÐµÐ·ÐµÐ½ÑÐ°ÑÐ¸Ñ 13 (1).pptx;|id|64c72e58-476d-41dd-9dbe-9a4c3fb463df|time|15:11|file|files\1741176696601-SQLiteStudio-3.4.16-windows-x64-installer.exe;
