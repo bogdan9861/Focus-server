@@ -27,7 +27,7 @@ app.use("/api/chats", require("../routes/chats"));
 
 // 🔥 тестовый эндпоинт
 app.get("/", (req, res) => {
-  res.send("Express server is working on Vercel!");
+  res.json({ text: "Express server is working on Vercel!" });
 });
 
 module.exports = app;
