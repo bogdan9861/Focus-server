@@ -390,7 +390,38 @@ const isFollowed = async (req, res) => {
 
 const getAll = async (req, res) => {
   try {
-    const users = await prisma.user.findMany();
+    const { phones } = req.query;
+
+    let filteredPhones;
+
+    if (Array.isArray(phones)) {
+      console.log(phones);
+
+      filteredPhones = phones.filter(
+        (number) => number.replace(" ", "+") !== req.user.phone
+      );
+    }
+
+    if (
+      typeof phones === "string" &&
+      phones.replace(" ", "+") === req.user.phone
+    ) {
+      filteredPhones = "  ";
+    }
+
+    const users = await prisma.user.findMany({
+      where: {
+        phone: Array.isArray(filteredPhones)
+          ? {
+              in: filteredPhones.map((number) =>
+                number.startsWith(" 7") ? number.replace(" ", "+") : number
+              ),
+            }
+          : {
+              contains: filteredPhones?.replace(" ", "+") || "",
+            },
+      },
+    });
 
     if (users) {
       res.status(200).json(users);

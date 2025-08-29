@@ -7,38 +7,59 @@ const create = async (req, res) => {
   try {
     const { userIds, name } = req.body;
 
-    if (!userIds)
+    if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
       return res.status(400).json({ message: "Все поля обязательны" });
+    }
 
-    const chat = await prisma.chat.create({
-      data: {
+    const allUserIds = [...new Set([...userIds, req.user.id])];
+
+    console.log("allUserIds", allUserIds);
+    
+
+    const candidateChats = await prisma.chat.findMany({
+      where: {
         users: {
-          create: userIds.map((userId) => ({
-            user: {
-              connect: { id: userId },
-            },
-          })),
+          every: {
+            userId: { in: allUserIds },
+          },
         },
-        name: name || "",
-        photo: req?.file?.path || "",
       },
       include: {
         users: {
-          include: {
-            user: true,
-          },
+          include: { user: true },
         },
       },
     });
 
-    if (chat) {
-      res.status(201).json(chat);
-    } else {
-      res.status(400).json({ message: "Не удалось создать чат" });
+    const existingChat = candidateChats.find(
+      (chat) => chat.users.length === allUserIds.length
+    );
+
+    if (existingChat) {
+      return res.status(200).json(existingChat);
     }
+
+    const newChat = await prisma.chat.create({
+      data: {
+        name: name || "",
+        photo: req?.file?.path || "",
+        users: {
+          create: allUserIds.map((userId) => ({
+            user: { connect: { id: userId } },
+          })),
+        },
+      },
+      include: {
+        users: {
+          include: { user: true },
+        },
+      },
+    });
+
+    return res.status(201).json(newChat);
   } catch (error) {
-    console.log(error);
-    res.status(500).json({ message: "Что-то пошло не так" });
+    console.error(error);
+    return res.status(500).json({ message: "Что-то пошло не так" });
   }
 };
 
