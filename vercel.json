@@ -12,5 +12,5 @@
     }
   ],
 
-  "buildCommand": "npm install && cd prisma && npx prisma generate && cd .."
+  "buildCommand": "npx prisma generate"
 }
