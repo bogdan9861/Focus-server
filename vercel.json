@@ -12,5 +12,5 @@
       "dest": "./index.js"
     }
   ],
-  "buildCommand": "npm install && npx prisma generate"
+  "buildCommand": "npm install && cd prisma && npx prisma generate && cd .."
 }
