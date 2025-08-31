@@ -15,7 +15,8 @@ const {
   sendFile,
   update,
   addUserToChat,
-  removeUserFormChat
+  removeUserFormChat,
+  reply,
 } = require("../controllers/chats");
 
 router.post("/upload/voice", auth, audio.single("audio"), sendVoice);
@@ -26,6 +27,7 @@ router.post("/addUser", auth, addUserToChat);
 
 router.post("/history", auth, getMessagesByChatId);
 router.post("/send", auth, send);
+router.post("/reply", allFiles.single("file"), auth, reply);
 router.post("/getById", auth, getById);
 
 router.post("/get", auth, get);
