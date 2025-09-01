@@ -28,7 +28,7 @@ router.post("/update", auth, image.single("photo"), update);
 router.post("/addUser", auth, addUserToChat);
 
 router.post("/history", auth, getMessagesByChatId);
-router.post("/send", auth, send);
+router.post("/send", auth, allFiles.single("file"), send);
 router.post("/reply", allFiles.single("file"), auth, reply);
 router.post("/getById", auth, getById);
 
