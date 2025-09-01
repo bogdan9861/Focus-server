@@ -26,9 +26,8 @@ model User {
   saves     Saved[]
   likes     Liked[]
 
-  chats        ChatToUsers[]
-  Message      Message[]
-  ReplyMessage ReplyMessage[]
+  chats   ChatToUsers[]
+  Message Message[]
 }
 
 model Post {
@@ -92,13 +91,12 @@ model Liked {
 }
 
 model Chat {
-  id           String         @id @default(uuid())
-  name         String?
-  photo        String?
-  lastMessage  String?
-  users        ChatToUsers[]
-  Message      Message[]
-  ReplyMessage ReplyMessage[]
+  id          String        @id @default(uuid())
+  name        String?
+  photo       String?
+  lastMessage String?
+  users       ChatToUsers[]
+  Message     Message[]
 }
 
 model ChatToUsers {
@@ -113,11 +111,13 @@ model ChatToUsers {
 }
 
 model Message {
-  id      String       @id @default(uuid())
-  text    String       @default("")
-  type    MessageTypes @default(text)
-  fileUrl String       @default("")
-  time    String
+  id         String       @id @default(uuid())
+  text       String       @default("")
+  type       MessageTypes @default(text)
+  fileUrl    String       @default("")
+  time       String
+  isEdited   Boolean      @default(false)
+  editedTime String?
 
   sender User?   @relation(fields: [userId], references: [id])
   userId String?
@@ -127,26 +127,10 @@ model Message {
 
   date DateTime @default(now())
 
-  replies ReplyMessage[]
-}
+  replyMessage    Message?  @relation("MessageToMessage", fields: [replyMessageId], references: [id])
+  replyToMessages Message[] @relation("MessageToMessage")
 
-model ReplyMessage {
-  id      String       @id @default(uuid())
-  text    String       @default("")
-  type    MessageTypes @default(text)
-  fileUrl String       @default("")
-  time    String
-
-  sender User?   @relation(fields: [userId], references: [id])
-  userId String?
-
-  chat   Chat?   @relation(fields: [chatId], references: [id])
-  chatId String?
-
-  date DateTime @default(now())
-
-  replymessage Message? @relation(fields: [messageId], references: [id])
-  messageId    String?
+  replyMessageId String?
 }
 
 enum MessageTypes {

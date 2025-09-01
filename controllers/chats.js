@@ -97,8 +97,6 @@ const addUserToChat = async (req, res) => {
         .json({ message: "Не удалось добавить пользователя" });
     }
   } catch (error) {
-    console.log(error);
-
     res.status(500).json({ message: "Что-то пошло не так" });
   }
 };
@@ -132,8 +130,6 @@ const removeUserFormChat = async (req, res) => {
         .json({ message: "Не удалось удалить пользователя" });
     }
   } catch (error) {
-    console.log(error);
-
     res.status(500).json({ message: "Что-то пошло не так" });
   }
 };
@@ -193,8 +189,6 @@ const send = async (req, res) => {
 
     res.status(201).json({ message });
   } catch (error) {
-    console.log(error);
-
     return res.status(500).json({ message: error });
   }
 };
@@ -203,27 +197,13 @@ const reply = async (req, res) => {
   try {
     const { chatId, text, replyMessageId } = req.body;
 
-    if (!chatId || !text) {
+    if (!chatId || (!text && !req?.file?.path)) {
       return res.status(400).json({ message: "Все поля обязательны" });
     }
 
     const time = getCurrentTime();
 
-    let replyMessage;
-
-    const isMessage = await prisma.message.findFirst({
-      where: {
-        id: replyMessageId,
-      },
-    });
-
-    const isReply = await prisma.replyMessage.findFirst({
-      where: {
-        id: replyMessageId,
-      },
-    });
-
-    const message = await prisma.replyMessage.create({
+    const message = await prisma.message.create({
       data: {
         text: text || "",
         fileUrl: req?.file?.path || "",
@@ -231,29 +211,103 @@ const reply = async (req, res) => {
         chatId: chatId,
         userId: req.user.id,
         time,
-        messageId: !!isMessage ? replyMessage : isReply.messageId,
+        replyMessageId,
       },
       include: {
         sender: true,
-        replymessage: true,
+        replyMessage: true,
       },
     });
 
-    if (isMessage) {
-      replyMessage = isMessage;
-    }
-
-    if (isReply) {
-      replyMessage = isReply;
-    }
-
     if (message) {
-      res.status(201).json({ message, replyMessage });
+      res.status(201).json({ message });
     } else {
       res.status(500).json({ message: "не удалось создать сообщение" });
     }
   } catch (error) {
+    res.status(500).json({ message: "Что-то пошло не так" });
+  }
+};
+
+const removeMessage = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({ message: "Все поля обязательны" });
+    }
+
+    const isMessageOwner = await prisma.message.findFirst({
+      where: {
+        id,
+      },
+    });
+
+    if (isMessageOwner.userId !== req.user.id) {
+      return res
+        .status(403)
+        .json({ message: "Нет прав на изменение этого сообщения" });
+    }
+
+    const message = await prisma.message.delete({
+      where: {
+        id,
+      },
+    });
+
+    if (!message) {
+      return res.status(404).json({ message: "Не удалось найти сообщение" });
+    }
+
+    res.status(204).json({});
+  } catch (error) {
+    res.status(500).json({ message: "Что-то пошло не так" });
+  }
+};
+
+const editMessage = async (req, res) => {
+  try {
+    const { id, text, file } = req.body;
+
+    if (!id || (!text && !req?.file?.path)) {
+      return res.status(400).json({ message: "Все поля обязательны" });
+    }
+
+    let data = {};
+
+    if (text) data.text = text;
+    if (req.file.path) data.fileUrl = req.file.path;
+
+    const time = getCurrentTime();
+
+    const isMessageOwner = await prisma.message.findFirst({
+      where: {
+        id,
+      },
+    });
+
+    if (isMessageOwner.userId !== req.user.id) {
+      return res
+        .status(403)
+        .json({ message: "Нет прав на изменение этого сообщения" });
+    }
+
+    const message = await prisma.message.update({
+      where: {
+        id,
+      },
+      data: {
+        ...data,
+        editedTime: time,
+        isEdited: true,
+      },
+    });
+
+    res.status(200).json(message);
+  } catch (error) {
     console.log(error);
+
+    res.status(500).json({ message: "Что-то пошло не так" });
   }
 };
 
@@ -270,7 +324,10 @@ const getMessagesByChatId = async (req, res) => {
         chatId: id,
       },
       include: {
-        replies: true,
+        replyMessage: true,
+      },
+      orderBy: {
+        date: "asc",
       },
     });
 
@@ -439,6 +496,8 @@ module.exports = {
   create,
   send,
   reply,
+  removeMessage,
+  editMessage,
   getMessagesByChatId,
   get,
   getById,

@@ -17,6 +17,8 @@ const {
   addUserToChat,
   removeUserFormChat,
   reply,
+  removeMessage,
+  editMessage,
 } = require("../controllers/chats");
 
 router.post("/upload/voice", auth, audio.single("audio"), sendVoice);
@@ -32,7 +34,10 @@ router.post("/getById", auth, getById);
 
 router.post("/get", auth, get);
 
+router.put("/edit/message", auth, allFiles.single("file"), editMessage);
+
 router.delete("/remove/:id", auth, removeById);
 router.delete("/removeUser", auth, removeUserFormChat);
+router.delete("/remove/message/:id", auth, removeMessage);
 
 module.exports = router;
