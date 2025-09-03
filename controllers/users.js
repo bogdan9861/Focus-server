@@ -61,8 +61,6 @@ const login = async (req, res) => {
   try {
     const { phone, password } = req.body;
 
-    console.log(req.body);
-
     if (!phone || !password) {
       return res.status(400).json({ message: "Все поля обязательны" });
     }

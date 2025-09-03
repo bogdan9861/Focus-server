@@ -168,6 +168,7 @@ const send = async (req, res) => {
   try {
     const { chatId, text } = req.body;
 
+    console.log("chatId", chatId, "text", text, "file", req?.file?.path);
     if (!chatId || (!text && !req?.file?.path)) {
       return res.status(400).json({ message: "Все поля обязательны" });
     }

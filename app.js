@@ -3,6 +3,8 @@ const cookieParser = require("cookie-parser");
 const logger = require("morgan");
 const cors = require("cors");
 const path = require("path");
+const { connect } = require("getstream");
+const { auth } = require("./middleware/auth");
 
 require("dotenv").config();
 
@@ -52,6 +54,20 @@ app.use(cookieParser());
 app.use("/api/users", require("./routes/users"));
 app.use("/api/posts", require("./routes/posts"));
 app.use("/api/files", require("./routes/files"));
+
+const client = connect(
+  "yh33d9wn9etc",
+  "edkjvq55uz99c6p8gd68nu4a8jucn8q422gtkwz269n2vnamqadkh2w2n9uj9j8h",
+  "1418020"
+);
+
+app.get("/api/getToken", auth, (req, res) => {
+  const userId = req.headers.uid;
+
+  const streamToken = client.createUserToken(userId);
+
+  res.json(streamToken);
+});
 
 app.use("/api/chats", require("./routes/chats"));
 
