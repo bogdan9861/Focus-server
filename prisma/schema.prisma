@@ -11,14 +11,15 @@ datasource db {
 }
 
 model User {
-  id       String @id @default(uuid())
-  about    String
-  name     String
-  nickname String
-  phone    String
-  photo    String
-  password String
-  status   String
+  id          String @id @default(uuid())
+  about       String
+  name        String
+  nickname    String
+  phone       String
+  photo       String
+  password    String
+  status      String
+  description String
 
   posts     Post[]
   followers Follower[]
@@ -91,12 +92,13 @@ model Liked {
 }
 
 model Chat {
-  id          String        @id @default(uuid())
+  id          String  @id @default(uuid())
   name        String?
   photo       String?
   lastMessage String?
-  users       ChatToUsers[]
-  Message     Message[]
+
+  users   ChatToUsers[]
+  Message Message[]
 }
 
 model ChatToUsers {

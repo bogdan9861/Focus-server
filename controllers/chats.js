@@ -168,10 +168,18 @@ const send = async (req, res) => {
   try {
     const { chatId, text } = req.body;
 
-    console.log("chatId", chatId, "text", text, "file", req?.file?.path);
     if (!chatId || (!text && !req?.file?.path)) {
       return res.status(400).json({ message: "Все поля обязательны" });
     }
+
+    const chat = await prisma.chat.update({
+      where: {
+        id: chatId,
+      },
+      data: {
+        lastMessage: text || req?.file?.name,
+      },
+    });
 
     const time = getCurrentTime();
 
@@ -326,7 +334,11 @@ const getMessagesByChatId = async (req, res) => {
         chatId: id,
       },
       include: {
-        replyMessage: true,
+        replyMessage: {
+          include: {
+            sender: true,
+          },
+        },
       },
       orderBy: {
         date: "asc",
