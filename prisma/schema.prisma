@@ -19,7 +19,7 @@ model User {
   photo       String
   password    String
   status      String
-  description String
+  description String?
 
   posts     Post[]
   followers Follower[]
