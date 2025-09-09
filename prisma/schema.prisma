@@ -11,7 +11,7 @@ datasource db {
 }
 
 model User {
-  id          String @id @default(uuid())
+  id          String  @id @default(uuid())
   about       String
   name        String
   nickname    String
@@ -20,6 +20,7 @@ model User {
   password    String
   status      String
   description String?
+  online      Boolean?
 
   posts     Post[]
   followers Follower[]

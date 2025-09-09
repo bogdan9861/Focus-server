@@ -186,7 +186,7 @@ const send = async (req, res) => {
     const message = await prisma.message.create({
       data: {
         type: "text",
-        text: text,
+        text,
         fileUrl: req?.file?.path || "",
         chatId,
         userId: req.user.id,
