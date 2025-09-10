@@ -334,6 +334,7 @@ const getMessagesByChatId = async (req, res) => {
         chatId: id,
       },
       include: {
+        sender: true,
         replyMessage: {
           include: {
             sender: true,
