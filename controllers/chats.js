@@ -225,7 +225,11 @@ const reply = async (req, res) => {
       },
       include: {
         sender: true,
-        replyMessage: true,
+        replyMessage: {
+          include: {
+            sender: true,
+          },
+        },
       },
     });
 
