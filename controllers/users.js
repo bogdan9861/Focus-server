@@ -25,6 +25,17 @@ const register = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
+    const generateColor = () => {
+      const color = [];
+
+      for (let i = 0; i < 3; i++) {
+        const random = Math.floor(Math.random() * 255);
+        color.push(random);
+      }
+
+      return color;
+    };
+
     const user = await prisma.user.create({
       data: {
         name,
@@ -34,6 +45,7 @@ const register = async (req, res) => {
         status: "",
         about: about ? about : "",
         nickname: nickname ? nickname : "",
+        color: `rgb(${generateColor().toString()})`,
       },
     });
 
