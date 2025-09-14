@@ -405,8 +405,6 @@ const getAll = async (req, res) => {
     let filteredPhones;
 
     if (Array.isArray(phones)) {
-      console.log(phones);
-
       filteredPhones = phones.filter(
         (number) => number.replace(" ", "+") !== req.user.phone
       );
@@ -414,9 +412,9 @@ const getAll = async (req, res) => {
 
     if (
       typeof phones === "string" &&
-      phones.replace(" ", "+") === req.user.phone
+      phones.replace(" ", "+") !== req.user.phone
     ) {
-      filteredPhones = "  ";
+      filteredPhones = phones.replace(" ", "+");
     }
 
     const users = await prisma.user.findMany({
