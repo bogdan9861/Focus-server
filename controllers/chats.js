@@ -290,7 +290,7 @@ const editMessage = async (req, res) => {
     let data = {};
 
     if (text) data.text = text;
-    if (req.file.path) data.fileUrl = req.file.path;
+    if (req?.file?.path) data.fileUrl = req?.file?.path;
 
     const time = getCurrentTime();
 
