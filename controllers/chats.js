@@ -1,7 +1,7 @@
 const fs = require("fs");
 const { prisma } = require("../prisma/prisma.client");
-const getMessagesHistory = require("../utils/getMessagesHistory");
 const getCurrentTime = require("../utils/getCurrentTime");
+const uploadFile = require("../utils/uploadFile");
 
 const create = async (req, res) => {
   try {
@@ -183,23 +183,39 @@ const send = async (req, res) => {
 
     const time = getCurrentTime();
 
-    const message = await prisma.message.create({
-      data: {
-        type: "text",
-        text,
-        fileUrl: req?.file?.path || "",
-        chatId,
-        userId: req.user.id,
-        time,
-      },
-      include: {
-        sender: true,
-      },
-    });
+    const createMessage = async (path) => {
+      const message = await prisma.message.create({
+        data: {
+          type: "text",
+          text,
+          fileUrl: path || "",
+          chatId,
+          userId: req.user.id,
+          time,
+        },
+        include: {
+          sender: true,
+        },
+      });
 
-    res.status(201).json({ message });
+      res.status(201).json({ message });
+    };
+
+    if (req?.file?.path) {
+      uploadFile(req?.file?.path, `chat-file${Date.now()}`)
+        .then((path) => {
+          createMessage(path);
+        })
+        .catch((e) => {
+          res.status(500).json({ message: "Cannot upload the file" });
+        });
+    } else {
+      createMessage();
+    }
   } catch (error) {
-    return res.status(500).json({ message: error });
+    console.log(error);
+
+    return res.status(500).json({ message: "Что-то пошло не так" });
   }
 };
 
@@ -283,6 +299,8 @@ const editMessage = async (req, res) => {
   try {
     const { id, text, file } = req.body;
 
+    console.log(text);
+
     if (!id || (!text && !req?.file?.path)) {
       return res.status(400).json({ message: "Все поля обязательны" });
     }
@@ -300,7 +318,7 @@ const editMessage = async (req, res) => {
       },
     });
 
-    if (isMessageOwner.userId !== req.user.id) {
+    if (isMessageOwner?.userId !== req.user.id) {
       return res
         .status(403)
         .json({ message: "Нет прав на изменение этого сообщения" });
@@ -328,12 +346,17 @@ const editMessage = async (req, res) => {
 const getMessagesByChatId = async (req, res) => {
   try {
     const { id } = req.body;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
 
     if (!id) {
       return res.status(400).json({ message: "Все поля обязательны" });
     }
 
     const messages = await prisma.message.findMany({
+      skip: offset,
+      take: limit,
       where: {
         chatId: id,
       },
@@ -346,11 +369,21 @@ const getMessagesByChatId = async (req, res) => {
         },
       },
       orderBy: {
-        date: "asc",
+        date: "desc",
       },
     });
 
-    res.status(200).json(messages);
+    const total = await prisma.message.count({ where: { chatId: id } });
+
+    res.status(200).json({
+      data: messages,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
   } catch (error) {
     res.status(500).json({ message: error });
   }
@@ -490,20 +523,28 @@ const sendFile = async (req, res) => {
       return res.status(404).json({ message: "Не удалось получить файл" });
     }
 
-    const audio = await prisma.message.create({
-      data: {
-        type: "file",
-        chatId,
-        userId: req.user.id,
-        time,
-        fileUrl: req.file.path,
-      },
-      include: {
-        sender: true,
-      },
-    });
+    uploadFile(req.file.path, `chat-file${Date.now()}`)
+      .then(async (path) => {
+        console.log(path);
 
-    res.status(201).json(audio);
+        const audio = await prisma.message.create({
+          data: {
+            type: "file",
+            chatId,
+            userId: req.user.id,
+            time,
+            fileUrl: path,
+          },
+          include: {
+            sender: true,
+          },
+        });
+
+        res.status(201).json(audio);
+      })
+      .catch((e) => {
+        res.status(500).json({ message: "Cannot upload the file" });
+      });
   } catch (error) {
     console.log(error);
 

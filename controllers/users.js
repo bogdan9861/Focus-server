@@ -1,6 +1,7 @@
 const { prisma } = require("../prisma/prisma.client");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const uploadFile = require("../utils/uploadFile");
 
 const register = async (req, res) => {
   try {
@@ -177,41 +178,32 @@ const uploadAvatar = async (req, res) => {
       res.status(400).json({ message: "Не удалось получить изображение" });
     }
 
-    const user = await prisma.user.update({
-      where: {
-        id: req.user.id,
-      },
-      data: {
-        ...req.user,
-        photo: path,
-      },
-    });
+    uploadFile(path, `avatar${Date.now()}`)
+      .then(async (path) => {
+        const user = await prisma.user.update({
+          where: {
+            id: req.user.id,
+          },
+          data: {
+            ...req.user,
+            photo: path,
+          },
+        });
 
-    await prisma.post.updateMany({
-      where: {
-        userId: req.user.id,
-      },
-      data: {
-        userPhoto: path,
-      },
-    });
+        await prisma.post.updateMany({
+          where: {
+            userId: req.user.id,
+          },
+          data: {
+            userPhoto: path,
+          },
+        });
 
-    if (path !== req.user.photo) {
-      await prisma.post.create({
-        data: {
-          photo: path,
-          status: "Новое фото профиля",
-          likesCount: "0",
-          commentsCount: "0",
-          name: req.user.name,
-          nickname: req.user.nickName || "",
-          userId: req.user.id,
-          userPhoto: path,
-        },
+        res.status(200).json(user);
+      })
+      .catch((e) => {
+        res.status(500).json("Cannot upload the avatar");
       });
-    }
-
-    res.status(200).json(user);
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "Что-то пошло не так" });
