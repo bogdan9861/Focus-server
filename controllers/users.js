@@ -178,6 +178,8 @@ const uploadAvatar = async (req, res) => {
       res.status(400).json({ message: "Не удалось получить изображение" });
     }
 
+    console.log(path);
+
     uploadFile(path, `avatar${Date.now()}`)
       .then(async (path) => {
         const user = await prisma.user.update({
@@ -202,7 +204,9 @@ const uploadAvatar = async (req, res) => {
         res.status(200).json(user);
       })
       .catch((e) => {
-        res.status(500).json("Cannot upload the avatar");
+        console.log(e);
+
+        res.status(500).json({ message: "Cannot upload avatar" });
       });
   } catch (error) {
     console.log(error);
