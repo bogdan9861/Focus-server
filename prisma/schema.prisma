@@ -1,37 +1,35 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
 model User {
-  id       String @id @default(uuid())
-  about    String
-  name     String
-  nickname String
-  phone    String
-  photo    String
-  password String
-  status   String
-
-  posts     Post[]
-  followers Follower[]
-  follows   Followed[]
-  saves     Saved[]
-  likes     Liked[]
-
-  chats ChatToUsers[]
+  id          String        @id @default(uuid())
+  about       String
+  name        String
+  nickname    String
+  phone       String
+  photo       String
+  password    String
+  status      String
+  description String?
+  online      Boolean?
+  color       String?
+  follows     Followed[]
+  followers   Follower[]
+  likes       Liked[]
+  Message     Message[]
+  posts       Post[]
+  saves       Saved[]
+  chats       ChatToUsers[]
 }
 
 model Post {
-  id            String   @id @default(uuid())
-  User          User?    @relation(fields: [userId], references: [id])
+  id            String    @id @default(uuid())
   userId        String?
   photo         String
   userPhoto     String?
@@ -40,53 +38,66 @@ model Post {
   likesCount    String
   commentsCount String
   status        String?
-  publishedAt   DateTime @default(now())
+  publishedAt   DateTime  @default(now())
+  comments      Comment[]
+  User          User?     @relation(fields: [userId], references: [id])
 
-  comments Comment[]
+  @@index([userId], map: "Post_userId_fkey")
 }
 
 model Comment {
   id       String  @id @default(uuid())
-  Post     Post?   @relation(fields: [postId], references: [id])
   postId   String?
   name     String?
   nickname String?
   text     String
-  Saved    Saved?  @relation(fields: [savedId], references: [id])
   savedId  String?
-  Liked    Liked?  @relation(fields: [likedId], references: [id])
   likedId  String?
+  Liked    Liked?  @relation(fields: [likedId], references: [id])
+  Post     Post?   @relation(fields: [postId], references: [id])
+  Saved    Saved?  @relation(fields: [savedId], references: [id])
+
+  @@index([likedId], map: "Comment_likedId_fkey")
+  @@index([postId], map: "Comment_postId_fkey")
+  @@index([savedId], map: "Comment_savedId_fkey")
 }
 
 model Follower {
   id         String  @id @default(uuid())
   followerId String?
-  User       User?   @relation(fields: [userId], references: [id])
   userId     String?
+  User       User?   @relation(fields: [userId], references: [id])
+
+  @@index([userId], map: "Follower_userId_fkey")
 }
 
 model Followed {
   id         String  @id @default(uuid())
   followedId String?
-  User       User?   @relation(fields: [userId], references: [id])
   userId     String?
+  User       User?   @relation(fields: [userId], references: [id])
+
+  @@index([userId], map: "Followed_userId_fkey")
 }
 
 model Saved {
-  id     String  @id @default(uuid())
-  User   User?   @relation(fields: [userId], references: [id])
-  userId String?
-  postId String?
-
+  id      String    @id @default(uuid())
+  userId  String?
+  postId  String?
   Comment Comment[]
+  User    User?     @relation(fields: [userId], references: [id])
+
+  @@index([userId], map: "Saved_userId_fkey")
 }
 
 model Liked {
   id      String    @id @default(uuid())
-  User    User?     @relation(fields: [userId], references: [id])
   userId  String?
-  Comment Comment[]
   postId  String?
+  Comment Comment[]
+  User    User?     @relation(fields: [userId], references: [id])
+
+  @@index([userId], map: "Liked_userId_fkey")
 }
 
 model Chat {
@@ -94,16 +105,47 @@ model Chat {
   name        String?
   photo       String?
   lastMessage String?
+  Message     Message[]
   users       ChatToUsers[]
 }
 
 model ChatToUsers {
   chatId     String
-  chat       Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   assignedAt DateTime @default(now())
+  chat       Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([chatId, userId])
+  @@index([userId], map: "chats_to_users_userId_fkey")
   @@map("chats_to_users")
+}
+
+model Message {
+  id              String       @id @default(uuid())
+  text            String       @default("")
+  type            MessageTypes @default(text)
+  fileUrl         String       @default("")
+  userId          String?
+  chatId          String?
+  time            String
+  date            DateTime     @default(now())
+  replyMessageId  String?
+  editedTime      String?
+  isEdited        Boolean      @default(false)
+  chat            Chat?        @relation(fields: [chatId], references: [id])
+  replyMessage    Message?     @relation("MessageToMessage", fields: [replyMessageId], references: [id])
+  replyToMessages Message[]    @relation("MessageToMessage")
+  sender          User?        @relation(fields: [userId], references: [id])
+
+  @@index([chatId], map: "Message_chatId_fkey")
+  @@index([replyMessageId], map: "Message_replyMessageId_fkey")
+  @@index([userId], map: "Message_userId_fkey")
+}
+
+enum MessageTypes {
+  text
+  audio
+  file
+  reply
 }

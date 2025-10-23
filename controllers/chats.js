@@ -1,7 +1,7 @@
 const fs = require("fs");
 const { prisma } = require("../prisma/prisma.client");
-const getMessagesHistory = require("../utils/getMessagesHistory");
 const getCurrentTime = require("../utils/getCurrentTime");
+const uploadFile = require("../utils/uploadFile");
 
 const create = async (req, res) => {
   try {
@@ -14,7 +14,6 @@ const create = async (req, res) => {
     const allUserIds = [...new Set([...userIds, req.user.id])];
 
     console.log("allUserIds", allUserIds);
-    
 
     const candidateChats = await prisma.chat.findMany({
       where: {
@@ -98,8 +97,6 @@ const addUserToChat = async (req, res) => {
         .json({ message: "Не удалось добавить пользователя" });
     }
   } catch (error) {
-    console.log(error);
-
     res.status(500).json({ message: "Что-то пошло не так" });
   }
 };
@@ -133,8 +130,6 @@ const removeUserFormChat = async (req, res) => {
         .json({ message: "Не удалось удалить пользователя" });
     }
   } catch (error) {
-    console.log(error);
-
     res.status(500).json({ message: "Что-то пошло не так" });
   }
 };
@@ -173,65 +168,222 @@ const send = async (req, res) => {
   try {
     const { chatId, text } = req.body;
 
-    const time = getCurrentTime();
-
-    if (!text || !chatId) {
+    if (!chatId || (!text && !req?.file?.path)) {
       return res.status(400).json({ message: "Все поля обязательны" });
     }
 
-    const safetyString = text.replace("|id|", "");
+    const chat = await prisma.chat.update({
+      where: {
+        id: chatId,
+      },
+      data: {
+        lastMessage: text || req?.file?.name,
+      },
+    });
 
-    const path = `./messages/${chatId}.txt`;
-    const message = `${safetyString}|id|${req.user.id}|time|${time};`;
+    const time = getCurrentTime();
 
-    const history = getMessagesHistory(path);
-
-    if (fs.existsSync(path)) {
-      fs.appendFileSync(path, message, (err) => {
-        console.log(err);
-      });
-
-      await prisma.chat.update({
-        where: {
-          id: chatId,
-        },
+    const createMessage = async (path) => {
+      const message = await prisma.message.create({
         data: {
-          lastMessage: text,
+          type: "text",
+          text,
+          fileUrl: path || "",
+          chatId,
+          userId: req.user.id,
+          time,
+        },
+        include: {
+          sender: true,
         },
       });
-    } else {
-      fs.writeFile(path, message, (err) => {
-        console.log(err);
-      });
-    }
 
-    if (history) {
-      return res.status(200).json(history);
+      res.status(201).json({ message });
+    };
+
+    if (req?.file?.path) {
+      uploadFile(req?.file?.path, `chat-file${Date.now()}`)
+        .then((path) => {
+          createMessage(path);
+        })
+        .catch((e) => {
+          res.status(500).json({ message: "Cannot upload the file" });
+        });
     } else {
-      return res.status(200).json([{}]);
+      createMessage();
     }
   } catch (error) {
     console.log(error);
 
-    return res.status(500).json({ message: error });
+    return res.status(500).json({ message: "Что-то пошло не так" });
+  }
+};
+
+const reply = async (req, res) => {
+  try {
+    const { chatId, text, replyMessageId } = req.body;
+
+    if (!chatId || (!text && !req?.file?.path)) {
+      return res.status(400).json({ message: "Все поля обязательны" });
+    }
+
+    const time = getCurrentTime();
+
+    const message = await prisma.message.create({
+      data: {
+        text: text || "",
+        fileUrl: req?.file?.path || "",
+        type: "reply",
+        chatId: chatId,
+        userId: req.user.id,
+        time,
+        replyMessageId,
+      },
+      include: {
+        sender: true,
+        replyMessage: {
+          include: {
+            sender: true,
+          },
+        },
+      },
+    });
+
+    if (message) {
+      res.status(201).json({ message });
+    } else {
+      res.status(500).json({ message: "не удалось создать сообщение" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: "Что-то пошло не так" });
+  }
+};
+
+const removeMessage = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({ message: "Все поля обязательны" });
+    }
+
+    const isMessageOwner = await prisma.message.findFirst({
+      where: {
+        id,
+      },
+    });
+
+    if (isMessageOwner.userId !== req.user.id) {
+      return res
+        .status(403)
+        .json({ message: "Нет прав на изменение этого сообщения" });
+    }
+
+    const message = await prisma.message.delete({
+      where: {
+        id,
+      },
+    });
+
+    if (!message) {
+      return res.status(404).json({ message: "Не удалось найти сообщение" });
+    }
+
+    res.status(204).json({});
+  } catch (error) {
+    res.status(500).json({ message: "Что-то пошло не так" });
+  }
+};
+
+const editMessage = async (req, res) => {
+  try {
+    const { id, text, file } = req.body;
+
+    console.log(text);
+
+    if (!id || (!text && !req?.file?.path)) {
+      return res.status(400).json({ message: "Все поля обязательны" });
+    }
+
+    let data = {};
+
+    if (text) data.text = text;
+    if (req?.file?.path) data.fileUrl = req?.file?.path;
+
+    const time = getCurrentTime();
+
+    const isMessageOwner = await prisma.message.findFirst({
+      where: {
+        id,
+      },
+    });
+
+    if (isMessageOwner?.userId !== req.user.id) {
+      return res
+        .status(403)
+        .json({ message: "Нет прав на изменение этого сообщения" });
+    }
+
+    const message = await prisma.message.update({
+      where: {
+        id,
+      },
+      data: {
+        ...data,
+        editedTime: time,
+        isEdited: true,
+      },
+    });
+
+    res.status(200).json(message);
+  } catch (error) {
+    console.log(error);
+
+    res.status(500).json({ message: "Что-то пошло не так" });
   }
 };
 
 const getMessagesByChatId = async (req, res) => {
   try {
     const { id } = req.body;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
 
     if (!id) {
-      res.status(400).json({ message: "Все поля обязательны" });
+      return res.status(400).json({ message: "Все поля обязательны" });
     }
 
-    const history = getMessagesHistory(`./messages/${id}.txt`);
+    const messages = await prisma.message.findMany({
+      skip: offset,
+      take: limit,
+      where: {
+        chatId: id,
+      },
+      include: {
+        sender: true,
+        replyMessage: {
+          include: {
+            sender: true,
+          },
+        },
+      },
+      orderBy: {
+        date: "desc",
+      },
+    });
 
-    if (history) {
-      res.status(200).json(history);
-    } else {
-      res.status(200).json([]);
-    }
+    const total = await prisma.message.count({ where: { chatId: id } });
+
+    res.status(200).json({
+      data: messages,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
   } catch (error) {
     res.status(500).json({ message: error });
   }
@@ -332,27 +484,27 @@ const sendVoice = async (req, res) => {
       },
     });
 
-    const path = `./messages/${chatId}.txt`;
-    const message = `|id|${req.user.id}|time|${time}|audio|${req.file.path};`;
-
-    if (fs.existsSync(path)) {
-      fs.appendFileSync(path, message, (err) => {
-        console.log(err);
-      });
-    } else {
-      fs.writeFile(path, message, (err) => {
-        console.log(err);
-      });
+    if (!req.file.path) {
+      return res.status(404).json({ message: "Не удалось получить файл" });
     }
 
-    const history = getMessagesHistory(path);
+    const audio = await prisma.message.create({
+      data: {
+        type: "audio",
+        chatId,
+        userId: req.user.id,
+        time,
+        fileUrl: req.file.path,
+      },
+      include: {
+        sender: true,
+      },
+    });
 
-    if (history) {
-      res.status(200).json(history);
-    } else {
-      res.status(400).json({ message: "Не удалось получить историю чата" });
-    }
+    res.status(201).json(audio);
   } catch (error) {
+    console.log(error);
+
     res.status(500).json({ message: "Что-то пошло не так" });
   }
 };
@@ -365,39 +517,34 @@ const sendFile = async (req, res) => {
       return res.status(400).json({ message: "Все поля обязательны" });
     }
 
-    const { file } = req;
-
     const time = getCurrentTime();
 
-    if (file) {
-      const path = `./messages/${chatId}.txt`;
-      const message = `|id|${req.user.id}|time|${time}|file|${file.path};`;
-
-      console.log(file);
-
-      await prisma.chat.update({
-        where: {
-          id: chatId,
-        },
-        data: {
-          lastMessage: file.originalname,
-        },
-      });
-
-      if (fs.existsSync(path)) {
-        fs.appendFileSync(path, message, (err) => {
-          console.log(err);
-        });
-      } else {
-        fs.writeFile(path, message, (err) => {
-          console.log(err);
-        });
-      }
-
-      res.status(200).json(file);
-    } else {
-      res.status(400).json({ message: "Не удалось получить файл" });
+    if (!req.file.path) {
+      return res.status(404).json({ message: "Не удалось получить файл" });
     }
+
+    uploadFile(req.file.path, `chat-file${Date.now()}`)
+      .then(async (path) => {
+        console.log(path);
+
+        const audio = await prisma.message.create({
+          data: {
+            type: "file",
+            chatId,
+            userId: req.user.id,
+            time,
+            fileUrl: path,
+          },
+          include: {
+            sender: true,
+          },
+        });
+
+        res.status(201).json(audio);
+      })
+      .catch((e) => {
+        res.status(500).json({ message: "Cannot upload the file" });
+      });
   } catch (error) {
     console.log(error);
 
@@ -408,6 +555,9 @@ const sendFile = async (req, res) => {
 module.exports = {
   create,
   send,
+  reply,
+  removeMessage,
+  editMessage,
   getMessagesByChatId,
   get,
   getById,

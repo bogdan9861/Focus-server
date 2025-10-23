@@ -1,6 +1,7 @@
 const { prisma } = require("../prisma/prisma.client");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const uploadFile = require("../utils/uploadFile");
 
 const register = async (req, res) => {
   try {
@@ -25,6 +26,17 @@ const register = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
+    const generateColor = () => {
+      const color = [];
+
+      for (let i = 0; i < 3; i++) {
+        const random = Math.floor(Math.random() * 255);
+        color.push(random);
+      }
+
+      return color;
+    };
+
     const user = await prisma.user.create({
       data: {
         name,
@@ -34,6 +46,7 @@ const register = async (req, res) => {
         status: "",
         about: about ? about : "",
         nickname: nickname ? nickname : "",
+        color: `rgb(${generateColor().toString()})`,
       },
     });
 
@@ -60,8 +73,6 @@ const register = async (req, res) => {
 const login = async (req, res) => {
   try {
     const { phone, password } = req.body;
-
-    console.log(req.body);
 
     if (!phone || !password) {
       return res.status(400).json({ message: "Все поля обязательны" });
@@ -167,41 +178,36 @@ const uploadAvatar = async (req, res) => {
       res.status(400).json({ message: "Не удалось получить изображение" });
     }
 
-    const user = await prisma.user.update({
-      where: {
-        id: req.user.id,
-      },
-      data: {
-        ...req.user,
-        photo: path,
-      },
-    });
+    console.log(path);
 
-    await prisma.post.updateMany({
-      where: {
-        userId: req.user.id,
-      },
-      data: {
-        userPhoto: path,
-      },
-    });
+    uploadFile(path, `avatar${Date.now()}`)
+      .then(async (path) => {
+        const user = await prisma.user.update({
+          where: {
+            id: req.user.id,
+          },
+          data: {
+            ...req.user,
+            photo: path,
+          },
+        });
 
-    if (path !== req.user.photo) {
-      await prisma.post.create({
-        data: {
-          photo: path,
-          status: "Новое фото профиля",
-          likesCount: "0",
-          commentsCount: "0",
-          name: req.user.name,
-          nickname: req.user.nickName || "",
-          userId: req.user.id,
-          userPhoto: path,
-        },
+        await prisma.post.updateMany({
+          where: {
+            userId: req.user.id,
+          },
+          data: {
+            userPhoto: path,
+          },
+        });
+
+        res.status(200).json(user);
+      })
+      .catch((e) => {
+        console.log(e);
+
+        res.status(500).json({ message: "Cannot upload avatar" });
       });
-    }
-
-    res.status(200).json(user);
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "Что-то пошло не так" });
@@ -395,8 +401,6 @@ const getAll = async (req, res) => {
     let filteredPhones;
 
     if (Array.isArray(phones)) {
-      console.log(phones);
-
       filteredPhones = phones.filter(
         (number) => number.replace(" ", "+") !== req.user.phone
       );
@@ -404,9 +408,9 @@ const getAll = async (req, res) => {
 
     if (
       typeof phones === "string" &&
-      phones.replace(" ", "+") === req.user.phone
+      phones.replace(" ", "+") !== req.user.phone
     ) {
-      filteredPhones = "  ";
+      filteredPhones = phones.replace(" ", "+");
     }
 
     const users = await prisma.user.findMany({
