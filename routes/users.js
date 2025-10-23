@@ -14,6 +14,13 @@ const {
   unsub,
   getAll,
 } = require("../controllers/users");
+
+const {
+  saveToken,
+  deleteToken,
+  sendNotification,
+} = require("../controllers/users.fcm");
+
 const { auth } = require("../middleware/auth");
 const fileMiddleware = require("../middleware/file");
 
@@ -37,5 +44,11 @@ router.get("/get/:id", auth, get);
 router.get("/current", auth, current);
 router.get("/followers/:id", auth, getFollowers);
 router.get("/follows/:id", auth, getFollows);
+
+// FCM
+
+router.post("/token", saveToken);
+router.delete("/token", deleteToken);
+router.post("/send-notification", sendNotification);
 
 module.exports = router;

@@ -8,6 +8,9 @@ CREATE TABLE `User` (
     `photo` VARCHAR(191) NOT NULL,
     `password` VARCHAR(191) NOT NULL,
     `status` VARCHAR(191) NOT NULL,
+    `description` VARCHAR(191) NULL,
+    `online` BOOLEAN NULL,
+    `color` VARCHAR(191) NULL,
 
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -25,6 +28,7 @@ CREATE TABLE `Post` (
     `status` VARCHAR(191) NULL,
     `publishedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
 
+    INDEX `Post_userId_fkey`(`userId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -38,6 +42,9 @@ CREATE TABLE `Comment` (
     `savedId` VARCHAR(191) NULL,
     `likedId` VARCHAR(191) NULL,
 
+    INDEX `Comment_likedId_fkey`(`likedId`),
+    INDEX `Comment_postId_fkey`(`postId`),
+    INDEX `Comment_savedId_fkey`(`savedId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -47,6 +54,7 @@ CREATE TABLE `Follower` (
     `followerId` VARCHAR(191) NULL,
     `userId` VARCHAR(191) NULL,
 
+    INDEX `Follower_userId_fkey`(`userId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -56,6 +64,7 @@ CREATE TABLE `Followed` (
     `followedId` VARCHAR(191) NULL,
     `userId` VARCHAR(191) NULL,
 
+    INDEX `Followed_userId_fkey`(`userId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -65,6 +74,7 @@ CREATE TABLE `Saved` (
     `userId` VARCHAR(191) NULL,
     `postId` VARCHAR(191) NULL,
 
+    INDEX `Saved_userId_fkey`(`userId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -74,6 +84,7 @@ CREATE TABLE `Liked` (
     `userId` VARCHAR(191) NULL,
     `postId` VARCHAR(191) NULL,
 
+    INDEX `Liked_userId_fkey`(`userId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -93,20 +104,41 @@ CREATE TABLE `chats_to_users` (
     `userId` VARCHAR(191) NOT NULL,
     `assignedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
 
+    INDEX `chats_to_users_userId_fkey`(`userId`),
     PRIMARY KEY (`chatId`, `userId`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `Message` (
+    `id` VARCHAR(191) NOT NULL,
+    `text` VARCHAR(191) NOT NULL DEFAULT '',
+    `type` ENUM('text', 'audio', 'file', 'reply') NOT NULL DEFAULT 'text',
+    `fileUrl` VARCHAR(191) NOT NULL DEFAULT '',
+    `userId` VARCHAR(191) NULL,
+    `chatId` VARCHAR(191) NULL,
+    `time` VARCHAR(191) NOT NULL,
+    `date` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `replyMessageId` VARCHAR(191) NULL,
+    `editedTime` VARCHAR(191) NULL,
+    `isEdited` BOOLEAN NOT NULL DEFAULT false,
+
+    INDEX `Message_chatId_fkey`(`chatId`),
+    INDEX `Message_replyMessageId_fkey`(`replyMessageId`),
+    INDEX `Message_userId_fkey`(`userId`),
+    PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- AddForeignKey
 ALTER TABLE `Post` ADD CONSTRAINT `Post_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE `Comment` ADD CONSTRAINT `Comment_likedId_fkey` FOREIGN KEY (`likedId`) REFERENCES `Liked`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE `Comment` ADD CONSTRAINT `Comment_postId_fkey` FOREIGN KEY (`postId`) REFERENCES `Post`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `Comment` ADD CONSTRAINT `Comment_savedId_fkey` FOREIGN KEY (`savedId`) REFERENCES `Saved`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE `Comment` ADD CONSTRAINT `Comment_likedId_fkey` FOREIGN KEY (`likedId`) REFERENCES `Liked`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `Follower` ADD CONSTRAINT `Follower_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
@@ -125,3 +157,12 @@ ALTER TABLE `chats_to_users` ADD CONSTRAINT `chats_to_users_chatId_fkey` FOREIGN
 
 -- AddForeignKey
 ALTER TABLE `chats_to_users` ADD CONSTRAINT `chats_to_users_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `Message` ADD CONSTRAINT `Message_chatId_fkey` FOREIGN KEY (`chatId`) REFERENCES `Chat`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `Message` ADD CONSTRAINT `Message_replyMessageId_fkey` FOREIGN KEY (`replyMessageId`) REFERENCES `Message`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `Message` ADD CONSTRAINT `Message_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;

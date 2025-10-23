@@ -26,6 +26,17 @@ model User {
   posts       Post[]
   saves       Saved[]
   chats       ChatToUsers[]
+  fcmTokens   FCMToken[]
+}
+
+model FCMToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  device    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Post {
@@ -137,6 +148,7 @@ model Message {
   replyMessage    Message?     @relation("MessageToMessage", fields: [replyMessageId], references: [id])
   replyToMessages Message[]    @relation("MessageToMessage")
   sender          User?        @relation(fields: [userId], references: [id])
+  isReaded        Boolean      @default(false)
 
   @@index([chatId], map: "Message_chatId_fkey")
   @@index([replyMessageId], map: "Message_replyMessageId_fkey")
