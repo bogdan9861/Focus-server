@@ -3,6 +3,9 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const uploadFile = require("../utils/uploadFile");
 
+console.log(123);
+
+
 const register = async (req, res) => {
   try {
     const { name, nickname, about, password, phone } = req.body;
