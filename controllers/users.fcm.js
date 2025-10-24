@@ -50,6 +50,7 @@ const sendNotification = async (req, res) => {
     });
 
     res.json({ success: true, data: result });
+    
   } catch (error) {
     console.error("Error sending notification:", error);
     res.status(500).json({ error: "Internal server error" });
