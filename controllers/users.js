@@ -428,6 +428,9 @@ const getAll = async (req, res) => {
               contains: filteredPhones?.replace(" ", "+") || "",
             },
       },
+      include: {
+        fcmTokens: true
+      }
     });
 
     if (users) {
