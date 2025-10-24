@@ -1,9 +1,5 @@
-// services/notificationService.js
-const { PrismaClient } = require("@prisma/client");
-const {admin} = require("../config/firebase-admin");
-
-
-const prisma = new PrismaClient();
+const { admin } = require("../config/firebase-admin");
+const { prisma } = require("../prisma/prisma.client");
 
 class NotificationService {
   // Сохранение FCM токена пользователя
@@ -69,12 +65,12 @@ class NotificationService {
       const response = await admin.messaging().sendEachForMulticast(message);
 
       // Логируем результат отправки
-      await this.logNotificationResult(
-        tokens,
-        response,
-        notificationData,
-        userId
-      );
+      // await this.logNotificationResult(
+      //   tokens,
+      //   response,
+      //   notificationData,
+      //   userId
+      // );
 
       // Удаляем невалидные токены
       await this.cleanupInvalidTokens(tokens, response);
@@ -111,36 +107,36 @@ class NotificationService {
   }
 
   // Логирование результатов отправки
-  async logNotificationResult(tokens, response, notificationData, userId) {
-    try {
-      for (let i = 0; i < response.responses.length; i++) {
-        const tokenResponse = response.responses[i];
-        const token = tokens[i];
+  // async logNotificationResult(tokens, response, notificationData, userId) {
+  //   try {
+  //     for (let i = 0; i < response.responses.length; i++) {
+  //       const tokenResponse = response.responses[i];
+  //       const token = tokens[i];
 
-        if (userId) {
-          await prisma.notification.create({
-            data: {
-              title: notificationData.title,
-              body: notificationData.body,
-              data: notificationData.data || {},
-              userId: userId,
-              isSent: tokenResponse.success,
-              sentAt: tokenResponse.success ? new Date() : null,
-            },
-          });
-        }
+  //       if (userId) {
+  //         await prisma.message.create({
+  //           data: {
+  //             title: notificationData.title,
+  //             body: notificationData.body,
+  //             data: notificationData.data || {},
+  //             userId: userId,
+  //             isSent: tokenResponse.success,
+  //             sentAt: tokenResponse.success ? new Date() : null,
+  //           },
+  //         });
+  //       }
 
-        if (!tokenResponse.success) {
-          console.error(
-            `Failed to send to token ${token}:`,
-            tokenResponse.error
-          );
-        }
-      }
-    } catch (error) {
-      console.error("Error logging notification result:", error);
-    }
-  }
+  //       if (!tokenResponse.success) {
+  //         console.error(
+  //           `Failed to send to token ${token}:`,
+  //           tokenResponse.error
+  //         );
+  //       }
+  //     }
+  //   } catch (error) {
+  //     console.error("Error logging notification result:", error);
+  //   }
+  // }
 
   // Очистка невалидных токенов
   async cleanupInvalidTokens(tokens, response) {
