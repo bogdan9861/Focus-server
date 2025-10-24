@@ -1,3 +1,4 @@
+const { prisma } = require("../prisma/prisma.client");
 const notificationService = require("../services/notificationService");
 
 const saveToken = async (req, res) => {
@@ -50,15 +51,30 @@ const sendNotification = async (req, res) => {
     });
 
     res.json({ success: true, data: result });
-    
   } catch (error) {
     console.error("Error sending notification:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
 
+const getUsersTokens = async (req, res) => {
+  try {
+    const { userId } = req.body;
+
+    const user = await prisma.fCMToken.findFirst({
+      where: {
+        userId,
+      },
+      include: {
+        user: true,
+      },
+    });
+  } catch (error) {}
+};
+
 module.exports = {
   saveToken,
   deleteToken,
   sendNotification,
+  getUsersTokens,
 };

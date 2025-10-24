@@ -19,6 +19,7 @@ const {
   saveToken,
   deleteToken,
   sendNotification,
+  getUsersTokens,
 } = require("../controllers/users.fcm");
 
 const { auth } = require("../middleware/auth");
@@ -50,5 +51,6 @@ router.get("/follows/:id", auth, getFollows);
 router.post("/token", saveToken);
 router.delete("/token", deleteToken);
 router.post("/send-notification", sendNotification);
+router.post("/get-user-token", getUsersTokens);
 
 module.exports = router;
