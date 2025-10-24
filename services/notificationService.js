@@ -58,6 +58,21 @@ class NotificationService {
           title: notificationData.title,
           body: notificationData.body,
         },
+        android: {
+          priority: "high",
+          notification: {
+            sound: "default",
+            channel_id: "default",
+          },
+        },
+        apns: {
+          payload: {
+            aps: {
+              sound: "default",
+              badge: 1,
+            },
+          },
+        },
         data: notificationData.data || {},
         tokens: tokens,
       };

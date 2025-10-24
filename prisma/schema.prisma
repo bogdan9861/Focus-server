@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
-  url      = env("DATABASE_URL")
+  provider     = "mysql"
+  url          = env("DATABASE_URL")
+  relationMode = "prisma"
 }
 
 model User {
@@ -145,7 +146,7 @@ model Message {
   editedTime      String?
   isEdited        Boolean      @default(false)
   chat            Chat?        @relation(fields: [chatId], references: [id])
-  replyMessage    Message?     @relation("MessageToMessage", fields: [replyMessageId], references: [id])
+  replyMessage    Message?     @relation("MessageToMessage", fields: [replyMessageId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   replyToMessages Message[]    @relation("MessageToMessage")
   sender          User?        @relation(fields: [userId], references: [id])
   isReaded        Boolean      @default(false)
