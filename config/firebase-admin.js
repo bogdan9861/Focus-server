@@ -7,3 +7,7 @@ admin.initializeApp({
     projectId: process.env.project_id,
   }),
 });
+
+module.exports = {
+  admin,
+};

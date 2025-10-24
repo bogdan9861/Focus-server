@@ -1,6 +1,7 @@
 // services/notificationService.js
 const { PrismaClient } = require("@prisma/client");
-const admin = require("../config/firebase-admin");
+const {admin} = require("../config/firebase-admin");
+
 
 const prisma = new PrismaClient();
 
