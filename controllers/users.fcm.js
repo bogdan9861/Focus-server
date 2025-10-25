@@ -26,8 +26,8 @@ const saveToken = async (req, res) => {
 
 const deleteToken = async (req, res) => {
   try {
-    const { token, userId } = req.params;
-    await notificationService.removeFCMToken(token, userId);
+    const { token } = req.params;
+    await notificationService.removeFCMToken(token, req.user.id);
     res.json({ success: true });
   } catch (error) {
     console.error("Error removing token:", error);
