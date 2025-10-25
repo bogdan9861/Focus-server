@@ -72,9 +72,29 @@ const getUsersTokens = async (req, res) => {
   } catch (error) {}
 };
 
+const removeFCMToken = async (req, res) => {
+  try {
+    const { token } = req.body;
+
+    if (!token) {
+      return res.status(400).json({
+        error: "token are required",
+      });
+    }
+
+    notificationService.removeFCMToken(token);
+
+    res.status({ success: true });
+  } catch (error) {
+    console.error("Error sending notification:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 module.exports = {
   saveToken,
   deleteToken,
   sendNotification,
   getUsersTokens,
+  removeFCMToken,
 };

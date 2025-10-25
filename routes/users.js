@@ -20,6 +20,7 @@ const {
   deleteToken,
   sendNotification,
   getUsersTokens,
+  removeFCMToken,
 } = require("../controllers/users.fcm");
 
 const { auth } = require("../middleware/auth");
@@ -52,5 +53,6 @@ router.post("/token", saveToken);
 router.delete("/token", deleteToken);
 router.post("/send-notification", sendNotification);
 router.post("/get-user-token", getUsersTokens);
+router.delete("/remove-token", removeFCMToken);
 
 module.exports = router;
