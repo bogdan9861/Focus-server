@@ -16,7 +16,7 @@ const saveToken = async (req, res) => {
       token,
       device
     );
-    
+
     res.json({ success: true, data: result });
   } catch (error) {
     console.error("Error saving token:", error);
@@ -26,8 +26,8 @@ const saveToken = async (req, res) => {
 
 const deleteToken = async (req, res) => {
   try {
-    const { token } = req.params;
-    await notificationService.removeFCMToken(token);
+    const { token, userId } = req.params;
+    await notificationService.removeFCMToken(token, userId);
     res.json({ success: true });
   } catch (error) {
     console.error("Error removing token:", error);
@@ -85,7 +85,7 @@ const removeFCMToken = async (req, res) => {
 
     notificationService.removeFCMToken(token);
 
-    res.status(200).json({success: true});
+    res.status(200).json({ success: true });
   } catch (error) {
     console.error("Error sending notification:", error);
     res.status(500).json({ error: "Internal server error" });
