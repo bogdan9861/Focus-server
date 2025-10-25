@@ -17,10 +17,10 @@ class NotificationService {
   }
 
   // Удаление FCM токена
-  async removeFCMToken(token) {
+  async removeFCMToken(token, userId) {
     try {
       return await prisma.fCMToken.delete({
-        where: { token },
+        where: { token, userId },
       });
     } catch (error) {
       console.error("Error removing FCM token:", error);

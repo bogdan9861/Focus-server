@@ -16,6 +16,7 @@ const saveToken = async (req, res) => {
       token,
       device
     );
+    
     res.json({ success: true, data: result });
   } catch (error) {
     console.error("Error saving token:", error);
