@@ -53,6 +53,6 @@ router.post("/token", saveToken);
 router.delete("/token", deleteToken);
 router.post("/send-notification", sendNotification);
 router.post("/get-user-token", getUsersTokens);
-router.delete("/remove-token", removeFCMToken);
+router.delete("/remove-token", auth, removeFCMToken);
 
 module.exports = router;

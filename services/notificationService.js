@@ -29,7 +29,7 @@ class NotificationService {
   }
 
   // Отправка уведомления конкретному пользователю
-  async sendToUser(userId, notificationData) {
+  async sendToUser(userId, notificationData, isDataOnly) {
     try {
       // Получаем все токены пользователя
       const userTokens = await prisma.fCMToken.findMany({
@@ -43,7 +43,12 @@ class NotificationService {
       }
 
       const tokens = userTokens.map((t) => t.token);
-      return await this.sendToTokens(tokens, notificationData, userId);
+      return await this.sendToTokens(
+        tokens,
+        notificationData,
+        userId,
+        isDataOnly
+      );
     } catch (error) {
       console.error("Error sending notification to user:", error);
       throw error;
@@ -51,13 +56,14 @@ class NotificationService {
   }
 
   // Отправка уведомления на конкретные токены
-  async sendToTokens(tokens, notificationData, userId = null) {
+  async sendToTokens(
+    tokens,
+    notificationData,
+    userId = null,
+    isDataOnly = false
+  ) {
     try {
       const message = {
-        notification: {
-          title: notificationData.title,
-          body: notificationData.body,
-        },
         android: {
           priority: "high",
           notification: {
@@ -65,7 +71,7 @@ class NotificationService {
             channel_id: "default",
           },
         },
-        apns: {
+        apns: notificationData.apns || {
           payload: {
             aps: {
               sound: "default",
@@ -76,6 +82,13 @@ class NotificationService {
         data: notificationData.data || {},
         tokens: tokens,
       };
+
+      if (!isDataOnly) {
+        message.notification = {
+          title: notificationData.title,
+          body: notificationData.body,
+        };
+      }
 
       const response = await admin.messaging().sendEachForMulticast(message);
 

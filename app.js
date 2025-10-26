@@ -24,6 +24,7 @@ app.use(cookieParser());
 app.use("/api/users", require("./routes/users"));
 app.use("/api/posts", require("./routes/posts"));
 app.use("/api/files", require("./routes/files"));
+app.use("/api/chats", require("./routes/chats"));
 
 const client = connect(
   "yh33d9wn9etc",
@@ -39,11 +40,6 @@ app.get("/api/getToken", auth, (req, res) => {
   res.json(streamToken);
 });
 
-app.use("/api/chats", require("./routes/chats"));
 
-// 🔥 тестовый эндпоинт
-app.get("/", (req, res) => {
-  res.json({ text: "Express server is working on Vercel!" });
-});
 
 module.exports = app;

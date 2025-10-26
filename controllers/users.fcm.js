@@ -37,7 +37,7 @@ const deleteToken = async (req, res) => {
 
 const sendNotification = async (req, res) => {
   try {
-    const { userId, title, body, data } = req.body;
+    const { userId, title, body, data, isDataOnly } = req.body;
 
     if (!userId || !title || !body) {
       return res.status(400).json({
@@ -45,11 +45,15 @@ const sendNotification = async (req, res) => {
       });
     }
 
-    const result = await notificationService.sendToUser(userId, {
-      title,
-      body,
-      data,
-    });
+    const result = await notificationService.sendToUser(
+      userId,
+      {
+        title,
+        body,
+        data,
+      },
+      isDataOnly
+    );
 
     res.json({ success: true, data: result });
   } catch (error) {
@@ -83,7 +87,7 @@ const removeFCMToken = async (req, res) => {
       });
     }
 
-    notificationService.removeFCMToken(token);
+    notificationService.removeFCMToken(token, req.user.id);
 
     res.status(200).json({ success: true });
   } catch (error) {
