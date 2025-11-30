@@ -19,7 +19,7 @@ const uploadFile = async function (path, public_id) {
 
   const optimizeUrl = cloudinary.url(public_id, {
     fetch_format: "auto",
-    quality: "auto",
+    quality: "high",
   });
 
   console.log(optimizeUrl);
@@ -31,7 +31,7 @@ const uploadFile = async function (path, public_id) {
     height: 500,
   });
 
-  return autoCropUrl;
+  return optimizeUrl;
 };
 
 module.exports = uploadFile;

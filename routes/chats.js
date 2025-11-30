@@ -19,6 +19,7 @@ const {
   reply,
   removeMessage,
   editMessage,
+  getChatByRecipientId,
 } = require("../controllers/chats");
 
 router.post("/upload/voice", auth, audio.single("audio"), sendVoice);

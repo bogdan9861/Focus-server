@@ -1,5 +1,6 @@
 const { prisma } = require("../prisma/prisma.client");
 const fs = require("fs");
+const uploadFile = require("../utils/uploadFile");
 
 const post = async (req, res) => {
   try {
@@ -9,25 +10,33 @@ const post = async (req, res) => {
         .json({ message: "Не удалось получить изображение" });
     }
 
-    const post = await prisma.post.create({
-      data: {
-        photo: req.file.path,
-        likesCount: "0",
-        commentsCount: "0",
-        status: "Новая публикация",
+    uploadFile(req.file.path, `avatar${Date.now()}`)
+      .then(async (path) => {
+        const post = await prisma.post.create({
+          data: {
+            photo: path,
+            likesCount: "0",
+            commentsCount: "0",
+            status: "Новая публикация",
 
-        userId: req.user.id,
-        userPhoto: req.user.photo,
-        nickname: req.user.nickname,
-        name: req.user.name,
-      },
-    });
+            userId: req.user.id,
+            userPhoto: req.user.photo,
+            nickname: req.user.nickname,
+            name: req.user.name,
+          },
+        });
 
-    if (!post) {
-      return res.status(500).json({ message: "Не удалось создать запись" });
-    }
+        if (!post) {
+          return res.status(500).json({ message: "Не удалось создать запись" });
+        }
 
-    res.status(200).json(post);
+        res.status(200).json(post);
+      })
+      .catch((e) => {
+        console.log(e);
+
+        res.status(500).json({ message: "Cannot upload avatar" });
+      });
   } catch (error) {
     console.log(error);
     return res.status(500).json({ message: "Что-то пошло не так" });
