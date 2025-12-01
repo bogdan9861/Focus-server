@@ -1,9 +1,9 @@
 const { v2: cloudinary } = require("cloudinary");
 
 cloudinary.config({
-  cloud_name: "dfw8vboac",
-  api_key: "253866699782782",
-  api_secret: process.env.CLOUDINARY_SECRET,
+  cloud_name: "dhnhvvkx7",
+  api_key: "547668788456733",
+  api_secret: "pM6SyKdCmtFWFUOp3Bd-fsxxigk",
 });
 
 const uploadFile = async function (path, public_id) {
@@ -31,7 +31,7 @@ const uploadFile = async function (path, public_id) {
     height: 500,
   });
 
-  return optimizeUrl;
+  return autoCropUrl;
 };
 
 module.exports = uploadFile;
