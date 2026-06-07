@@ -5,65 +5,102 @@ const uploadFile = require("../utils/uploadFile");
 
 const register = async (req, res) => {
   try {
-    const { name, nickname, about, password, phone } = req.body;
+    const {
+      name,
+      nickname,
+      about,
+      password,
+      phone,
+      organizationName,
+      organizationId,
+    } = req.body;
 
-    if (!name || !phone || !password) {
+    if (!name || !phone || !password || !(organizationId || organizationName)) {
       return res.status(400).json({ message: "Все поля обязательны" });
     }
 
-    const isExist = await prisma.user.findFirst({
-      where: {
-        phone,
+    prisma.$transaction(
+      async () => {
+        try {
+          const isExist = await prisma.user.findFirst({
+            where: {
+              phone,
+            },
+          });
+
+          if (isExist) {
+            return res.status(400).json({
+              message:
+                "Пользовател с таким номером телефона уже зарегистрирован ",
+            });
+          }
+
+          const salt = await bcrypt.genSalt(10);
+          const hashedPassword = await bcrypt.hash(password, salt);
+
+          const generateColor = () => {
+            const color = [];
+
+            for (let i = 0; i < 3; i++) {
+              const random = Math.floor(Math.random() * 255);
+              color.push(random);
+            }
+
+            return color;
+          };
+
+          let organization;
+
+          if (organizationId) {
+            organization = await prisma.organization.findFirst({
+              where: {
+                id: organizationId,
+              },
+            });
+          } else {
+            organization = await prisma.organization.create({
+              data: {
+                name: organizationName,
+              },
+            });
+          }
+
+          const user = await prisma.user.create({
+            data: {
+              name,
+              phone,
+              password: hashedPassword,
+              photo: "",
+              status: "",
+              about: about ? about : "",
+              nickname: nickname ? nickname : "",
+              color: `rgb(${generateColor().toString()})`,
+              organizationId: organization.id,
+            },
+          });
+
+          if (!user) {
+            return res
+              .status(400)
+              .json({ message: "Не удалось зарегистрировать пользовятеля" });
+          }
+
+          const token = jwt.sign({ id: user.id }, process.env.SECRET, {
+            expiresIn: "30d",
+          });
+
+          res.status(201).json({
+            ...user,
+            token,
+          });
+        } catch (error) {
+          return res
+            .status(500)
+            .json({ message: `Failed to register user ${error}` });
+        }
       },
-    });
-
-    if (isExist) {
-      return res.status(400).json({
-        message: "Пользовател с таким номером телефона уже зарегистрирован ",
-      });
-    }
-
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    const generateColor = () => {
-      const color = [];
-
-      for (let i = 0; i < 3; i++) {
-        const random = Math.floor(Math.random() * 255);
-        color.push(random);
-      }
-
-      return color;
-    };
-
-    const user = await prisma.user.create({
-      data: {
-        name,
-        phone,
-        password: hashedPassword,
-        photo: "",
-        status: "",
-        about: about ? about : "",
-        nickname: nickname ? nickname : "",
-        color: `rgb(${generateColor().toString()})`,
-      },
-    });
-
-    if (!user) {
-      return res
-        .status(400)
-        .json({ message: "Не удалось зарегистрировать пользовятеля" });
-    }
-
-    const token = jwt.sign({ id: user.id }, process.env.SECRET, {
-      expiresIn: "30d",
-    });
-
-    res.status(201).json({
-      ...user,
-      token,
-    });
+      { timeout: 20000 }
+    );
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "Что-то пошло не так" });
@@ -429,8 +466,8 @@ const getAll = async (req, res) => {
             },
       },
       include: {
-        fcmTokens: true
-      }
+        fcmTokens: true,
+      },
     });
 
     if (users) {

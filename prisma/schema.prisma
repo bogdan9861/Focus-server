@@ -7,157 +7,471 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id          String        @id @default(uuid())
-  about       String
-  name        String
-  nickname    String
-  phone       String
-  photo       String
-  password    String
-  status      String
-  description String?
-  online      Boolean?
-  color       String?
-  follows     Followed[]
-  followers   Follower[]
-  likes       Liked[]
-  Message     Message[]
-  posts       Post[]
-  saves       Saved[]
-  chats       ChatToUsers[]
-  fcmTokens   FCMToken[]
+enum UserRole {
+  TEACHER
+  STUDENT
+  ADMIN
 }
 
-model FCMToken {
-  id        String   @id @default(cuid())
-  token     String   @unique
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  device    String?
+enum ChatType {
+  PRIVATE
+  GROUP
+  CHANNEL
+}
+
+enum ChannelType {
+  SUBJECT
+  INFORMATION
+}
+
+enum MessageType {
+  TEXT
+  AUDIO
+  FILE
+  IMAGE
+  VIDEO
+  REPLY
+  TEST
+  SYSTEM
+}
+
+enum TestQuestionType {
+  SINGLE
+  MULTIPLE
+  TEXT
+}
+
+enum TestStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model User {
+  id          String  @id @default(uuid())
+  name        String
+  nickname    String  @unique
+  phone       String  @unique
+  password    String
+  photo       String?
+  about       String?
+  status      String?
+  description String?
+  color       String?
+  online      Boolean @default(false)
+
+  role UserRole @default(STUDENT)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // Organization
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // Messages
+  messages Message[]
+
+  // Chats
+  chats ChatMember[]
+
+  // Channels
+  channelMemberships ChannelMember[]
+
+  // Tests created by teacher
+  createdTests Test[] @relation("TeacherTests")
+
+  // Completed tests by student
+  completedTests CompletedTest[]
+
+  // Push notifications
+  fcmTokens FCMToken[]
+
+  // Social
+  posts     Post[]
+  followers Follower[]
+  follows   Followed[]
+  likes     Liked[]
+  saves     Saved[]
+  channels  Channel[]
 }
 
-model Post {
-  id            String    @id @default(uuid())
-  userId        String?
-  photo         String
-  userPhoto     String?
-  nickname      String?
-  name          String?
-  likesCount    String
-  commentsCount String
-  status        String?
-  publishedAt   DateTime  @default(now())
-  comments      Comment[]
-  User          User?     @relation(fields: [userId], references: [id])
+model Organization {
+  id   String @id @default(uuid())
+  name String
 
-  @@index([userId], map: "Post_userId_fkey")
+  createdAt DateTime @default(now())
+
+  users    User[]
+  channels Channel[]
+  tests    Test[]
 }
 
-model Comment {
-  id       String  @id @default(uuid())
-  postId   String?
-  name     String?
-  nickname String?
-  text     String
-  savedId  String?
-  likedId  String?
-  Liked    Liked?  @relation(fields: [likedId], references: [id])
-  Post     Post?   @relation(fields: [postId], references: [id])
-  Saved    Saved?  @relation(fields: [savedId], references: [id])
+model Channel {
+  id          String  @id @default(uuid())
+  name        String
+  description String?
+  photo       String?
 
-  @@index([likedId], map: "Comment_likedId_fkey")
-  @@index([postId], map: "Comment_postId_fkey")
-  @@index([savedId], map: "Comment_savedId_fkey")
+  type ChannelType
+
+  // Например: "Математика", "История"
+  subjectName String?
+
+  // Только учитель может писать
+  teacherOnly Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Organization
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // Teacher owner
+  teacherId String
+  teacher   User   @relation(fields: [teacherId], references: [id])
+
+  // Chat
+  chatId String @unique
+  chat   Chat   @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  // Members
+  members ChannelMember[]
+
+  // Tests
+  tests Test[]
+
+  @@index([organizationId])
+  @@index([teacherId])
 }
 
-model Follower {
-  id         String  @id @default(uuid())
-  followerId String?
-  userId     String?
-  User       User?   @relation(fields: [userId], references: [id])
+model ChannelMember {
+  id String @id @default(uuid())
 
-  @@index([userId], map: "Follower_userId_fkey")
-}
+  channelId String
+  userId    String
 
-model Followed {
-  id         String  @id @default(uuid())
-  followedId String?
-  userId     String?
-  User       User?   @relation(fields: [userId], references: [id])
+  joinedAt DateTime @default(now())
 
-  @@index([userId], map: "Followed_userId_fkey")
-}
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-model Saved {
-  id      String    @id @default(uuid())
-  userId  String?
-  postId  String?
-  Comment Comment[]
-  User    User?     @relation(fields: [userId], references: [id])
-
-  @@index([userId], map: "Saved_userId_fkey")
-}
-
-model Liked {
-  id      String    @id @default(uuid())
-  userId  String?
-  postId  String?
-  Comment Comment[]
-  User    User?     @relation(fields: [userId], references: [id])
-
-  @@index([userId], map: "Liked_userId_fkey")
+  @@unique([channelId, userId])
+  @@index([userId])
 }
 
 model Chat {
-  id          String        @id @default(uuid())
+  id String @id @default(uuid())
+
+  type ChatType @default(PRIVATE)
+
   name        String?
   photo       String?
   lastMessage String?
-  Message     Message[]
-  users       ChatToUsers[]
+
+  isPinned   Boolean @default(false)
+  isArchived Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages Message[]
+
+  users ChatMember[]
+
+  // Optional channel binding
+  channel Channel?
+
+  @@index([type])
 }
 
-model ChatToUsers {
-  chatId     String
-  userId     String
+model ChatMember {
+  chatId String
+  userId String
+
   assignedAt DateTime @default(now())
-  chat       Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  chat Chat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([chatId, userId])
-  @@index([userId], map: "chats_to_users_userId_fkey")
-  @@map("chats_to_users")
+  @@index([userId])
+  @@map("chat_members")
 }
 
 model Message {
-  id              String       @id @default(uuid())
-  text            String       @default("")
-  type            MessageTypes @default(text)
-  fileUrl         String       @default("")
-  userId          String?
-  chatId          String?
-  time            String
-  date            DateTime     @default(now())
-  replyMessageId  String?
-  editedTime      String?
-  isEdited        Boolean      @default(false)
-  chat            Chat?        @relation(fields: [chatId], references: [id])
-  replyMessage    Message?     @relation("MessageToMessage", fields: [replyMessageId], references: [id])
-  replyToMessages Message[]    @relation("MessageToMessage")
-  sender          User?        @relation(fields: [userId], references: [id])
-  isReaded        Boolean      @default(false)
+  id String @id @default(uuid())
 
-  @@index([chatId], map: "Message_chatId_fkey")
-  @@index([replyMessageId], map: "Message_replyMessageId_fkey")
-  @@index([userId], map: "Message_userId_fkey")
+  text    String  @db.Text
+  fileUrl String?
+
+  type MessageType @default(TEXT)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  isEdited Boolean @default(false)
+  isReaded Boolean @default(false)
+
+  // Sender
+  senderId String
+  sender   User   @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  // Chat
+  chatId String
+  chat   Chat   @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  // Reply
+  replyMessageId String?
+  replyMessage   Message?  @relation("MessageReplies", fields: [replyMessageId], references: [id])
+  replies        Message[] @relation("MessageReplies")
+
+  // Attached test
+  testId String?
+  test   Test?   @relation(fields: [testId], references: [id])
+
+  @@index([chatId])
+  @@index([senderId])
+  @@index([replyMessageId])
+  @@index([testId])
 }
 
-enum MessageTypes {
-  text
-  audio
-  file
-  reply
+model Test {
+  id          String  @id @default(uuid())
+  title       String
+  description String? @db.Text
+
+  status TestStatus @default(DRAFT)
+
+  // Ограничение по времени (в минутах)
+  timeLimit Int?
+
+  // Максимальный балл
+  maxScore Int @default(100)
+
+  // Показывать ли правильные ответы после прохождения
+  showAnswers Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Teacher creator
+  teacherId String
+  teacher   User   @relation("TeacherTests", fields: [teacherId], references: [id])
+
+  // Organization
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  // Channel
+  channelId String?
+  channel   Channel? @relation(fields: [channelId], references: [id])
+
+  // Questions
+  questions TestQuestion[]
+
+  // Completed tests
+  completedTests CompletedTest[]
+  messages       Message[]
+
+  @@index([teacherId])
+  @@index([organizationId])
+  @@index([channelId])
+}
+
+model TestQuestion {
+  id String @id @default(uuid())
+
+  question String @db.Text
+
+  type TestQuestionType @default(SINGLE)
+
+  // Порядок вопроса
+  order Int
+
+  // Количество баллов за вопрос
+  points Int @default(1)
+
+  testId String
+  test   Test   @relation(fields: [testId], references: [id], onDelete: Cascade)
+
+  answers              TestAnswer[]
+  completedTestAnswers CompletedTestAnswer[]
+
+  @@index([testId])
+}
+
+model TestAnswer {
+  id String @id @default(uuid())
+
+  text String @db.Text
+
+  isCorrect Boolean @default(false)
+
+  questionId                String
+  question                  TestQuestion               @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  completedAnswerSelections CompletedAnswerSelection[]
+
+  @@index([questionId])
+}
+
+model CompletedTest {
+  id String @id @default(uuid())
+
+  // Процент прохождения от 0 до 100
+  resultPercent Float
+
+  // Количество правильных ответов
+  correctAnswers Int @default(0)
+
+  // Общее количество вопросов
+  totalQuestions Int @default(0)
+
+  startedAt   DateTime @default(now())
+  completedAt DateTime
+
+  // Student
+  studentId String
+  student   User   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  // Test
+  testId String
+  test   Test   @relation(fields: [testId], references: [id], onDelete: Cascade)
+
+  // Ответы ученика
+  answers CompletedTestAnswer[]
+
+  // Один ученик может пройти тест несколько раз
+
+  @@index([studentId])
+  @@index([testId])
+}
+
+model CompletedTestAnswer {
+  id String @id @default(uuid())
+
+  completedTestId String
+  completedTest   CompletedTest @relation(fields: [completedTestId], references: [id], onDelete: Cascade)
+
+  questionId String
+  question   TestQuestion @relation(fields: [questionId], references: [id])
+
+  // Для TEXT вопроса
+  textAnswer String? @db.Text
+
+  // Правильно ли ответил
+  isCorrect Boolean @default(false)
+
+  // Выбранные ответы
+  selectedAnswers CompletedAnswerSelection[]
+
+  @@index([completedTestId])
+  @@index([questionId])
+}
+
+model CompletedAnswerSelection {
+  id String @id @default(uuid())
+
+  completedTestAnswerId String
+  completedTestAnswer   CompletedTestAnswer @relation(fields: [completedTestAnswerId], references: [id], onDelete: Cascade)
+
+  answerId String
+  answer   TestAnswer @relation(fields: [answerId], references: [id])
+
+  @@index([completedTestAnswerId])
+  @@index([answerId])
+}
+
+model FCMToken {
+  id String @id @default(cuid())
+
+  token String @unique
+
+  device String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+//
+// SOCIAL MODELS
+//
+
+model Post {
+  id String @id @default(uuid())
+
+  photo String
+
+  likesCount    Int @default(0)
+  commentsCount Int @default(0)
+
+  status String?
+
+  publishedAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  comments Comment[]
+
+  @@index([userId])
+}
+
+model Comment {
+  id String @id @default(uuid())
+
+  text String @db.Text
+
+  postId String
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([postId])
+}
+
+model Follower {
+  id String @id @default(uuid())
+
+  followerId String
+  userId     String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Followed {
+  id String @id @default(uuid())
+
+  followedId String
+  userId     String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Saved {
+  id String @id @default(uuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Liked {
+  id String @id @default(uuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }

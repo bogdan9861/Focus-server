@@ -552,6 +552,44 @@ const sendFile = async (req, res) => {
   }
 };
 
+const editChat = async (req, res) => {
+  try {
+    const { name, isPinned } = req.body;
+    const file = req.file;
+    const { id } = req.params;
+
+    if (!id) {
+      return res
+        .status(404)
+        .json({ message: "Cannot found chat with specefied id" });
+    }
+
+    const chat = await prisma.chat.findFirst({
+      where: {
+        id,
+      },
+    });
+
+    const prismaUpdateChat = async (url) => {
+      await prisma.chat.update({
+        where: {
+          id,
+        },
+        data: {
+          name: name || chat.name,
+          isPinned: isPinned || chat.isPinned,
+          
+        },
+      });
+    };
+
+    if (file) {
+    }
+  } catch (error) {
+    res.status(500).json({ message: "Что-то пошло не так" });
+  }
+};
+
 module.exports = {
   create,
   send,
@@ -567,4 +605,5 @@ module.exports = {
   update,
   addUserToChat,
   removeUserFormChat,
+  editChat,
 };

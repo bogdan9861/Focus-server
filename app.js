@@ -24,6 +24,7 @@ app.use(cookieParser());
 app.use("/api/users", require("./routes/users"));
 app.use("/api/posts", require("./routes/posts"));
 app.use("/api/files", require("./routes/files"));
+app.use("/api/organizations", require("./routes/organizations"));
 
 const client = connect(
   "yh33d9wn9etc",
