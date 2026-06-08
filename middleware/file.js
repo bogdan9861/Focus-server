@@ -2,8 +2,6 @@ const multer = require("multer");
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    console.log(file);
-
     if (file.mimetype.includes("video")) {
       cb(null, "./videos");
     } else {

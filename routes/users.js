@@ -35,12 +35,12 @@ router.put(
   "/uploadAvatar",
   auth,
   fileMiddleware.single("avatar"),
-  uploadAvatar
+  uploadAvatar,
 );
 
 router.delete("/unsub", auth, unsub);
 
-router.get("/get", auth, getAll);
+router.get("/getAll", auth, getAll);
 router.get("/get/:id", auth, get);
 router.get("/current", auth, current);
 router.get("/followers/:id", auth, getFollowers);

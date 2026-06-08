@@ -25,14 +25,10 @@ enum ChannelType {
 }
 
 enum MessageType {
-  TEXT
-  AUDIO
-  FILE
-  IMAGE
-  VIDEO
-  REPLY
-  TEST
-  SYSTEM
+  text
+  audio
+  file
+  reply
 }
 
 enum TestQuestionType {
@@ -50,7 +46,7 @@ enum TestStatus {
 model User {
   id          String  @id @default(uuid())
   name        String
-  nickname    String  @unique
+  nickname    String?
   phone       String  @unique
   password    String
   photo       String?
@@ -94,17 +90,80 @@ model User {
   likes     Liked[]
   saves     Saved[]
   channels  Channel[]
+
+  group   Group?  @relation(fields: [groupId], references: [id])
+  groupId String?
 }
 
 model Organization {
   id   String @id @default(uuid())
-  name String
+  name String @unique
 
   createdAt DateTime @default(now())
 
   users    User[]
   channels Channel[]
   tests    Test[]
+
+  groups Group[]
+}
+
+model Group {
+  id     String @id @default(uuid())
+  name   String
+  course Int    @default(1)
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  users          User[]
+  tests          Test[]
+  organizationId String
+}
+
+model Test {
+  id          String  @id @default(uuid())
+  title       String
+  description String? @db.Text
+
+  status TestStatus @default(DRAFT)
+
+  // Ограничение по времени (в минутах)
+  timeLimit Int?
+
+  // Максимальный балл
+  maxScore Int @default(100)
+
+  // Показывать ли правильные ответы после прохождения
+  showAnswers Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Teacher creator
+  teacherId String
+  teacher   User   @relation("TeacherTests", fields: [teacherId], references: [id])
+
+  // Organization
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  // Channel
+  channelId String?
+  channel   Channel? @relation(fields: [channelId], references: [id])
+
+  // Questions
+  questions TestQuestion[]
+
+  // Completed tests
+  completedTests CompletedTest[]
+  messages       Message[]
+
+  group   Group  @relation(fields: [groupId], references: [id])
+  groupId String
+
+  @@index([teacherId])
+  @@index([organizationId])
+  @@index([channelId])
 }
 
 model Channel {
@@ -206,7 +265,7 @@ model Message {
   text    String  @db.Text
   fileUrl String?
 
-  type MessageType @default(TEXT)
+  type MessageType @default(text)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -231,53 +290,13 @@ model Message {
   testId String?
   test   Test?   @relation(fields: [testId], references: [id])
 
+  date DateTime @default(now())
+  time String
+
   @@index([chatId])
   @@index([senderId])
   @@index([replyMessageId])
   @@index([testId])
-}
-
-model Test {
-  id          String  @id @default(uuid())
-  title       String
-  description String? @db.Text
-
-  status TestStatus @default(DRAFT)
-
-  // Ограничение по времени (в минутах)
-  timeLimit Int?
-
-  // Максимальный балл
-  maxScore Int @default(100)
-
-  // Показывать ли правильные ответы после прохождения
-  showAnswers Boolean @default(true)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Teacher creator
-  teacherId String
-  teacher   User   @relation("TeacherTests", fields: [teacherId], references: [id])
-
-  // Organization
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
-
-  // Channel
-  channelId String?
-  channel   Channel? @relation(fields: [channelId], references: [id])
-
-  // Questions
-  questions TestQuestion[]
-
-  // Completed tests
-  completedTests CompletedTest[]
-  messages       Message[]
-
-  @@index([teacherId])
-  @@index([organizationId])
-  @@index([channelId])
 }
 
 model TestQuestion {

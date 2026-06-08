@@ -25,11 +25,12 @@ app.use("/api/users", require("./routes/users"));
 app.use("/api/posts", require("./routes/posts"));
 app.use("/api/files", require("./routes/files"));
 app.use("/api/organizations", require("./routes/organizations"));
+app.use("/api/groups", require("./routes/groups"));
 
 const client = connect(
   "yh33d9wn9etc",
   "edkjvq55uz99c6p8gd68nu4a8jucn8q422gtkwz269n2vnamqadkh2w2n9uj9j8h",
-  "1418020"
+  "1418020",
 );
 
 app.get("/api/getToken", auth, (req, res) => {

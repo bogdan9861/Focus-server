@@ -13,6 +13,8 @@ const register = async (req, res) => {
       phone,
       organizationName,
       organizationId,
+      groupId,
+      groupName,
     } = req.body;
 
     if (!name || !phone || !password || !(organizationId || organizationName)) {
@@ -50,6 +52,7 @@ const register = async (req, res) => {
           };
 
           let organization;
+          let group;
 
           if (organizationId) {
             organization = await prisma.organization.findFirst({
@@ -65,6 +68,21 @@ const register = async (req, res) => {
             });
           }
 
+          if (groupId) {
+            group = await prisma.group.findFirst({
+              where: {
+                id: groupId,
+              },
+            });
+          } else {
+            group = await prisma.group.create({
+              data: {
+                name: groupName,
+                organizationId: organization.id,
+              },
+            });
+          }
+
           const user = await prisma.user.create({
             data: {
               name,
@@ -76,6 +94,7 @@ const register = async (req, res) => {
               nickname: nickname ? nickname : "",
               color: `rgb(${generateColor().toString()})`,
               organizationId: organization.id,
+              groupId: group.id,
             },
           });
 
@@ -94,12 +113,14 @@ const register = async (req, res) => {
             token,
           });
         } catch (error) {
+          console.log(error);
+
           return res
             .status(500)
             .json({ message: `Failed to register user ${error}` });
         }
       },
-      { timeout: 20000 }
+      { timeout: 20000 },
     );
   } catch (error) {
     console.log(error);
@@ -165,10 +186,14 @@ const get = async (req, res) => {
       where: { id },
       include: {
         fcmTokens: true,
+        organization: true,
+        group: true
       },
     });
 
     if (!user) {
+      console.log('пользователь не найден');
+      
       return res.status(404).json({ message: "Не удалось найти пользователя" });
     }
 
@@ -442,7 +467,7 @@ const getAll = async (req, res) => {
 
     if (Array.isArray(phones)) {
       filteredPhones = phones.filter(
-        (number) => number.replace(" ", "+") !== req.user.phone
+        (number) => number.replace(" ", "+") !== req.user.phone,
       );
     }
 
@@ -453,18 +478,22 @@ const getAll = async (req, res) => {
       filteredPhones = phones.replace(" ", "+");
     }
 
+    let where = {};
+
+    if (phones) {
+      where.phone = Array.isArray(filteredPhones)
+        ? {
+            in: filteredPhones.map((number) =>
+              number.startsWith(" 7") ? number.replace(" ", "+") : number,
+            ),
+          }
+        : {
+            contains: filteredPhones?.replace(" ", "+") || "",
+          };
+    }
+
     const users = await prisma.user.findMany({
-      where: {
-        phone: Array.isArray(filteredPhones)
-          ? {
-              in: filteredPhones.map((number) =>
-                number.startsWith(" 7") ? number.replace(" ", "+") : number
-              ),
-            }
-          : {
-              contains: filteredPhones?.replace(" ", "+") || "",
-            },
-      },
+      where,
       include: {
         fcmTokens: true,
       },

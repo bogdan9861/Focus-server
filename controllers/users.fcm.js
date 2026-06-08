@@ -5,6 +5,8 @@ const saveToken = async (req, res) => {
   try {
     const { userId, token, device } = req.body;
 
+    console.log({ userId, token, device });
+
     if (!userId || !token) {
       return res.status(400).json({
         error: "UserId and token are required",
@@ -14,7 +16,7 @@ const saveToken = async (req, res) => {
     const result = await notificationService.saveFCMToken(
       userId,
       token,
-      device
+      device,
     );
     res.json({ success: true, data: result });
   } catch (error) {
@@ -69,7 +71,13 @@ const getUsersTokens = async (req, res) => {
         user: true,
       },
     });
-  } catch (error) {}
+
+    return res.status(200).json(user);
+  } catch (error) {
+    console.log(error);
+
+    res.status(500).json({ message: "Server error" });
+  }
 };
 
 module.exports = {

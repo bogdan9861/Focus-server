@@ -5,15 +5,15 @@ const uploadFile = require("../utils/uploadFile");
 
 const create = async (req, res) => {
   try {
-    const { userIds, name } = req.body;
+    const { userIds, name, type } = req.body;
 
-    if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
+    const idsArray = Array.isArray(userIds) ? userIds : [userIds];
+
+    if (!idsArray || !Array.isArray(idsArray) || idsArray.length === 0) {
       return res.status(400).json({ message: "Все поля обязательны" });
     }
 
-    const allUserIds = [...new Set([...userIds, req.user.id])];
-
-    console.log("allUserIds", allUserIds);
+    const allUserIds = [...new Set([...idsArray, req.user.id])];
 
     const candidateChats = await prisma.chat.findMany({
       where: {
@@ -31,31 +31,47 @@ const create = async (req, res) => {
     });
 
     const existingChat = candidateChats.find(
-      (chat) => chat.users.length === allUserIds.length
+      (chat) => chat.users.length === allUserIds.length,
     );
 
     if (existingChat) {
       return res.status(200).json(existingChat);
     }
 
-    const newChat = await prisma.chat.create({
-      data: {
-        name: name || "",
-        photo: req?.file?.path || "",
-        users: {
-          create: allUserIds.map((userId) => ({
-            user: { connect: { id: userId } },
-          })),
+    const prismaCreateChat = async (path) => {
+      const newChat = await prisma.chat.create({
+        data: {
+          name: name || "",
+          photo: path || "",
+          type: type || "PRIVATE",
+          users: {
+            create: allUserIds.map((userId) => ({
+              user: { connect: { id: userId } },
+            })),
+          },
         },
-      },
-      include: {
-        users: {
-          include: { user: true },
+        include: {
+          users: {
+            include: { user: true },
+          },
         },
-      },
-    });
+      });
 
-    return res.status(201).json(newChat);
+      return res.status(201).json(newChat);
+    };
+
+    if (req?.file?.path) {
+      uploadFile(req?.file?.path)
+        .then(({ url }) => {
+          prismaCreateChat(url);
+        })
+        .catch((e) => {
+          console.error(e);
+          return res.status(500).json({ message: "Cannot upload image" });
+        });
+    } else {
+      prismaCreateChat();
+    }
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Что-то пошло не так" });
@@ -190,15 +206,15 @@ const send = async (req, res) => {
           text,
           fileUrl: path || "",
           chatId,
-          userId: req.user.id,
           time,
+          senderId: req.user.id,
         },
         include: {
           sender: true,
         },
       });
 
-      res.status(201).json({ message });
+      res.status(201).json(message);
     };
 
     if (req?.file?.path) {
@@ -235,7 +251,7 @@ const reply = async (req, res) => {
         fileUrl: req?.file?.path || "",
         type: "reply",
         chatId: chatId,
-        userId: req.user.id,
+        senderId: req.user.id,
         time,
         replyMessageId,
       },
@@ -250,7 +266,7 @@ const reply = async (req, res) => {
     });
 
     if (message) {
-      res.status(201).json({ message });
+      res.status(201).json(message);
     } else {
       res.status(500).json({ message: "не удалось создать сообщение" });
     }
@@ -289,7 +305,7 @@ const removeMessage = async (req, res) => {
       return res.status(404).json({ message: "Не удалось найти сообщение" });
     }
 
-    res.status(204).json({});
+    res.status(200).json({ message: "Сообщение удалено" });
   } catch (error) {
     res.status(500).json({ message: "Что-то пошло не так" });
   }
@@ -385,6 +401,8 @@ const getMessagesByChatId = async (req, res) => {
       },
     });
   } catch (error) {
+    console.log(error);
+
     res.status(500).json({ message: error });
   }
 };
@@ -578,7 +596,6 @@ const editChat = async (req, res) => {
         data: {
           name: name || chat.name,
           isPinned: isPinned || chat.isPinned,
-          
         },
       });
     };
