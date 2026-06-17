@@ -120,7 +120,7 @@ const register = async (req, res) => {
             .json({ message: `Failed to register user ${error}` });
         }
       },
-      { timeout: 20000 },
+      { timeout: 20000 }
     );
   } catch (error) {
     console.log(error);
@@ -187,13 +187,13 @@ const get = async (req, res) => {
       include: {
         fcmTokens: true,
         organization: true,
-        group: true
+        group: true,
       },
     });
 
     if (!user) {
-      console.log('пользователь не найден');
-      
+      console.log("пользователь не найден");
+
       return res.status(404).json({ message: "Не удалось найти пользователя" });
     }
 
@@ -467,7 +467,7 @@ const getAll = async (req, res) => {
 
     if (Array.isArray(phones)) {
       filteredPhones = phones.filter(
-        (number) => number.replace(" ", "+") !== req.user.phone,
+        (number) => number.replace(" ", "+") !== req.user.phone
       );
     }
 
@@ -484,7 +484,7 @@ const getAll = async (req, res) => {
       where.phone = Array.isArray(filteredPhones)
         ? {
             in: filteredPhones.map((number) =>
-              number.startsWith(" 7") ? number.replace(" ", "+") : number,
+              number.startsWith(" 7") ? number.replace(" ", "+") : number
             ),
           }
         : {
@@ -496,6 +496,7 @@ const getAll = async (req, res) => {
       where,
       include: {
         fcmTokens: true,
+        group: true,
       },
     });
 
